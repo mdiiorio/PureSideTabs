@@ -1,10 +1,8 @@
 const tabTree = document.getElementById('tab-tree');
 const searchInput = document.getElementById('search-input');
-const btnNewTab = document.getElementById('btn-new-tab');
 
 // --- State ---
-let allWindows = [];
-let collapsedWindows = new Set();
+let allTabs = [];
 
 // --- Render ---
 
@@ -63,55 +61,24 @@ function renderTabRow(tab) {
 
     row.addEventListener('click', () => {
         chrome.tabs.update(tab.id, { active: true });
-        chrome.windows.update(tab.windowId, { focused: true });
     });
 
     return row;
 }
 
-function renderWindow(win, tabs, windowIndex) {
-    const group = document.createElement('div');
-    group.className = 'window-group';
-    group.dataset.windowId = win.id;
-
-    const label = document.createElement('div');
-    const isCollapsed = collapsedWindows.has(win.id);
-    label.className = 'window-label' + (isCollapsed ? ' collapsed' : '');
-
-    const chevron = document.createElement('span');
-    chevron.className = 'chevron';
-    chevron.textContent = '▾';
-    label.appendChild(chevron);
-
-    const text = document.createElement('span');
-    text.textContent = `Window ${windowIndex + 1}  ·  ${tabs.length} tab${tabs.length !== 1 ? 's' : ''}`;
-    label.appendChild(text);
-
-    label.addEventListener('click', () => {
-        if (collapsedWindows.has(win.id)) {
-            collapsedWindows.delete(win.id);
-        } else {
-            collapsedWindows.add(win.id);
-        }
-        render();
-    });
-
-    group.appendChild(label);
-
-    const tabsContainer = document.createElement('div');
-    tabsContainer.className = 'window-tabs';
-    if (!isCollapsed) {
-        tabs.forEach((tab) => tabsContainer.appendChild(renderTabRow(tab)));
-    }
-    group.appendChild(tabsContainer);
-
-    return group;
-}
-
 function render(query = '') {
     tabTree.innerHTML = '';
 
-    if (allWindows.length === 0) {
+    const q = query.toLowerCase();
+    const filtered = q
+        ? allTabs.filter(
+            (t) =>
+                (t.title || '').toLowerCase().includes(q) ||
+                (t.url || '').toLowerCase().includes(q)
+        )
+        : allTabs;
+
+    if (filtered.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
         empty.textContent = 'No tabs found.';
@@ -119,31 +86,16 @@ function render(query = '') {
         return;
     }
 
-    const q = query.toLowerCase();
-
-    allWindows.forEach(({ win, tabs }, i) => {
-        const filteredTabs = q
-            ? tabs.filter(
-                (t) =>
-                    (t.title || '').toLowerCase().includes(q) ||
-                    (t.url || '').toLowerCase().includes(q)
-            )
-            : tabs;
-
-        if (filteredTabs.length === 0) return;
-
-        tabTree.appendChild(renderWindow(win, filteredTabs, i));
-    });
+    filtered.forEach((tab) => tabTree.appendChild(renderTabRow(tab)));
 }
 
 // --- Data fetching ---
 
 async function loadTabs() {
-    const windows = await chrome.windows.getAll({ populate: true });
-    allWindows = windows.map((win) => ({
-        win,
-        tabs: win.tabs.sort((a, b) => a.index - b.index),
-    }));
+    const [currentWindow] = await Promise.all([
+        chrome.windows.getCurrent({ populate: true }),
+    ]);
+    allTabs = currentWindow.tabs.sort((a, b) => a.index - b.index);
     render(searchInput.value);
 }
 
@@ -151,18 +103,12 @@ async function loadTabs() {
 
 searchInput.addEventListener('input', () => render(searchInput.value));
 
-btnNewTab.addEventListener('click', () => {
-    chrome.tabs.create({});
-});
-
 // Listen for tab changes and re-render
 chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);
 chrome.tabs.onUpdated.addListener(loadTabs);
 chrome.tabs.onActivated.addListener(loadTabs);
 chrome.tabs.onMoved.addListener(loadTabs);
-chrome.windows.onCreated.addListener(loadTabs);
-chrome.windows.onRemoved.addListener(loadTabs);
 
 // Initial load
 loadTabs();
