@@ -1,7 +1,2 @@
-// Open the side panel when the extension action is clicked
-chrome.action.onClicked.addListener((tab) => {
-    chrome.sidePanel.open({ windowId: tab.windowId });
-});
-
-// Allow the side panel to be opened on every tab
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+// Disable automatic side panel on action click — the popup handles it instead
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });

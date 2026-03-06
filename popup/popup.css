@@ -1,0 +1,78 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode (default) */
+:root {
+  --bg: #1e1e2e;
+  --surface: #2a2a3d;
+  --border: #3a3a52;
+  --accent: #7c6af7;
+  --accent-hover: #9d8fff;
+  --text: #cdd6f4;
+  --text-muted: #6c7086;
+  --hover-bg: #2d2d42;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f0f0f0;
+    --surface: #ffffff;
+    --border: #c0c0c0;
+    --accent: #2264d1;
+    --accent-hover: #1a4fa8;
+    --text: #1a1a1a;
+    --text-muted: #767676;
+    --hover-bg: #e0e0e0;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  width: 280px;
+  padding: 4px 0;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 6px 12px 4px;
+}
+
+.tab-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 28px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin: 0 4px;
+  transition: background 0.1s;
+}
+
+.tab-row:hover {
+  background: var(--hover-bg);
+}
+
+.tab-favicon {
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+}
