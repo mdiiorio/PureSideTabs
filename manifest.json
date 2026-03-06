@@ -8,6 +8,15 @@
     "sidePanel",
     "storage"
   ],
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "Alt+Shift+S"
+      },
+      "description": "Show/hide the tab sidebar"
+    }
+  },
   "background": {
     "service_worker": "background.js"
   },
