@@ -5,7 +5,8 @@
   "description": "View and manage your open tabs in a sidebar tree view.",
   "permissions": [
     "tabs",
-    "sidePanel"
+    "sidePanel",
+    "storage"
   ],
   "background": {
     "service_worker": "background.js"
