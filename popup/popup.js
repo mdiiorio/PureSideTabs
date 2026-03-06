@@ -62,10 +62,36 @@ document.addEventListener('keydown', (e) => {
 
 // --- Render ---
 
-async function render() {
-    const { mruTabIds = [] } = await chrome.storage.session.get('mruTabIds');
+function renderHeading(text) {
+    const heading = document.createElement('div');
+    heading.className = 'section-label';
+    heading.textContent = text;
+    return heading;
+}
 
-    if (mruTabIds.length === 0) {
+async function render() {
+    const [{ mruTabIds = [] }, allTabs] = await Promise.all([
+        chrome.storage.session.get('mruTabIds'),
+        chrome.tabs.query({}),
+    ]);
+
+    const tabById = Object.fromEntries(allTabs.map(t => [t.id, t]));
+    const pinnedTabs = allTabs.filter(t => t.pinned).sort((a, b) => a.index - b.index);
+
+    // Pinned section
+    if (pinnedTabs.length > 0) {
+        container.appendChild(renderHeading('Pinned Tabs'));
+        for (const tab of pinnedTabs) {
+            const row = renderRow(tab);
+            rows.push(row);
+            container.appendChild(row);
+        }
+    }
+
+    // MRU section (filter out stale IDs for tabs that no longer exist)
+    const mruTabs = mruTabIds.map(id => tabById[id]).filter(Boolean);
+
+    if (mruTabs.length === 0 && pinnedTabs.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
         empty.textContent = 'No recent tabs yet.';
@@ -73,21 +99,18 @@ async function render() {
         return;
     }
 
-    // Fetch all tabs, then map by ID to preserve MRU order
-    const tabs = await chrome.tabs.query({});
-    const tabById = Object.fromEntries(tabs.map(t => [t.id, t]));
+    container.appendChild(renderHeading('Recent Tabs'));
 
-    for (const id of mruTabIds) {
-        const tab = tabById[id];
-        if (tab) {
-            const row = renderRow(tab);
-            rows.push(row);
-            container.appendChild(row);
-        }
+    const mruStartIndex = rows.length;
+    for (const tab of mruTabs) {
+        const row = renderRow(tab);
+        rows.push(row);
+        container.appendChild(row);
     }
 
-    // Select the second entry by default (first is the current tab)
-    setSelected(rows.length > 1 ? 1 : 0);
+    // Default selection: second item in MRU section
+    const defaultIndex = mruTabs.length > 1 ? mruStartIndex + 1 : mruStartIndex;
+    setSelected(defaultIndex);
 }
 
 render();
