@@ -87,6 +87,8 @@ function render(query = '') {
     }
 
     filtered.forEach((tab) => tabTree.appendChild(renderTabRow(tab)));
+
+    tabTree.querySelector('.tab-row.active')?.scrollIntoView({ block: 'nearest' });
 }
 
 // --- Data fetching ---
