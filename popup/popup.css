@@ -59,7 +59,8 @@ body {
   transition: background 0.1s;
 }
 
-.tab-row:hover {
+.tab-row:hover,
+.tab-row.selected {
   background: var(--hover-bg);
 }
 
