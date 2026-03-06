@@ -19,7 +19,7 @@
   --close-hover-color: #f38ba8;
   --close-hover-border: rgba(255, 80, 80, 0.4);
   --favicon-size: 16px;
-  --row-height: 22px;
+  --row-height: 28px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -101,12 +101,12 @@ body {
 .tab-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 10px;
+  gap: 8px;
+  padding: 0 12px;
   height: var(--row-height);
   cursor: pointer;
-  border-radius: 2px;
-  margin: 0 2px;
+  border-radius: 4px;
+  margin: 0 4px;
   transition: background 0.1s;
 }
 
