@@ -5,6 +5,7 @@
   "description": "View and manage your open tabs in a sidebar tree view.",
   "permissions": [
     "tabs",
+    "tabGroups",
     "sidePanel",
     "storage"
   ],
