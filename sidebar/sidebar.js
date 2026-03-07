@@ -69,9 +69,9 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
             .catch(console.error);
     });
 
-    const dot = document.createElement('span');
-    dot.className = 'group-dot';
-    header.appendChild(dot);
+    const chevron = document.createElement('span');
+    chevron.className = 'group-chevron';
+    header.appendChild(chevron);
 
     const name = document.createElement('span');
     name.className = 'group-name';
@@ -82,10 +82,6 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
     count.className = 'group-count';
     count.textContent = `${totalCount} tab${totalCount !== 1 ? 's' : ''}`;
     header.appendChild(count);
-
-    const chevron = document.createElement('span');
-    chevron.className = 'group-chevron';
-    header.appendChild(chevron);
 
     section.appendChild(header);
 
