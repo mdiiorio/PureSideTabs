@@ -1,38 +1,14 @@
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* Dark mode (default) */
+/* Sidebar-specific variables */
 :root {
-  --bg: #1e1e2e;
-  --surface: #2a2a3d;
-  --border: #3a3a52;
-  --accent: #7c6af7;
-  --accent-hover: #9d8fff;
-  --text: #cdd6f4;
-  --text-muted: #6c7086;
-  --active-bg: #313347;
-  --hover-bg: #2d2d42;
+  --favicon-size: 16px;
+  --row-height: 28px;
   --close-hover-bg: rgba(255, 80, 80, 0.2);
   --close-hover-color: #f38ba8;
   --close-hover-border: rgba(255, 80, 80, 0.4);
-  --favicon-size: 16px;
-  --row-height: 28px;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f0f0f0;
-    --surface: #ffffff;
-    --border: #c0c0c0;
-    --accent: #2264d1;
-    --accent-hover: #1a4fa8;
-    --text: #1a1a1a;
-    --text-muted: #767676;
-    --active-bg: #cce0ff;
-    --hover-bg: #e0e0e0;
     --close-hover-bg: #ffd0d0;
     --close-hover-color: #cc0000;
     --close-hover-border: #cc0000;

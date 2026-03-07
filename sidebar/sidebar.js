@@ -6,36 +6,6 @@ let allTabs = [];
 
 // --- Render ---
 
-function getFaviconUrl(tab) {
-    if (tab.favIconUrl && !tab.favIconUrl.startsWith('chrome://')) {
-        return tab.favIconUrl;
-    }
-    return null;
-}
-
-function renderFavicon(tab) {
-    const img = document.createElement('img');
-    img.className = 'tab-favicon';
-    img.width = 16;
-    img.height = 16;
-    const src = getFaviconUrl(tab);
-    if (src) {
-        img.src = src;
-        img.onerror = () => {
-            img.src = getFallbackSvg();
-            img.className = 'tab-favicon placeholder';
-        };
-    } else {
-        img.src = getFallbackSvg();
-        img.className = 'tab-favicon placeholder';
-    }
-    return img;
-}
-
-function getFallbackSvg() {
-    return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='2' fill='%236c7086'/><rect x='3' y='5' width='10' height='1.5' rx='1' fill='%23cdd6f4'/><rect x='3' y='8' width='7' height='1.5' rx='1' fill='%23cdd6f4'/><rect x='3' y='11' width='9' height='1.5' rx='1' fill='%23cdd6f4'/></svg>`;
-}
-
 function renderTabRow(tab) {
     const row = document.createElement('div');
     row.className = 'tab-row' + (tab.active ? ' active' : '');
@@ -94,9 +64,7 @@ function render(query = '') {
 // --- Data fetching ---
 
 async function loadTabs() {
-    const [currentWindow] = await Promise.all([
-        chrome.windows.getCurrent({ populate: true }),
-    ]);
+    const currentWindow = await chrome.windows.getCurrent({ populate: true });
     allTabs = currentWindow.tabs.sort((a, b) => a.index - b.index);
     render(searchInput.value);
 }
@@ -105,10 +73,11 @@ async function loadTabs() {
 
 searchInput.addEventListener('input', () => render(searchInput.value));
 
-// Listen for tab changes and re-render
 chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);
-chrome.tabs.onUpdated.addListener(loadTabs);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if ('title' in changeInfo || 'favIconUrl' in changeInfo || 'status' in changeInfo) loadTabs();
+});
 chrome.tabs.onActivated.addListener(loadTabs);
 chrome.tabs.onMoved.addListener(loadTabs);
 

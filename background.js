@@ -34,8 +34,7 @@ async function pushMru(tabId) {
 
 chrome.tabs.onActivated.addListener(({ tabId }) => pushMru(tabId));
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-    chrome.storage.session.get('mruTabIds').then(({ mruTabIds = [] }) => {
-        chrome.storage.session.set({ mruTabIds: mruTabIds.filter(id => id !== tabId) });
-    });
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+    const { mruTabIds = [] } = await chrome.storage.session.get('mruTabIds');
+    await chrome.storage.session.set({ mruTabIds: mruTabIds.filter(id => id !== tabId) });
 });
