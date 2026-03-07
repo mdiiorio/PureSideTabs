@@ -50,16 +50,24 @@ function renderTabRow(tab) {
     return row;
 }
 
-function renderGroupSection(group, tabs) {
+// tabsToShow: tabs to render as rows (empty when collapsed and not searching)
+// totalCount: always the full tab count in the group (for the header label)
+// collapsed: whether to apply the collapsed CSS class (affects chevron + padding)
+function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
     const { color, bg } = GROUP_COLORS[group.color] ?? GROUP_COLORS.grey;
 
     const section = document.createElement('div');
-    section.className = 'tab-group';
+    section.className = 'tab-group' + (collapsed ? ' collapsed' : '');
     section.style.setProperty('--group-color', color);
     section.style.setProperty('--group-bg', bg);
 
     const header = document.createElement('div');
     header.className = 'tab-group-header';
+    header.addEventListener('click', () => {
+        chrome.tabGroups.update(group.id, { collapsed: !group.collapsed })
+            .then(loadTabs)
+            .catch(console.error);
+    });
 
     const dot = document.createElement('span');
     dot.className = 'group-dot';
@@ -72,12 +80,16 @@ function renderGroupSection(group, tabs) {
 
     const count = document.createElement('span');
     count.className = 'group-count';
-    count.textContent = `${tabs.length} tab${tabs.length !== 1 ? 's' : ''}`;
+    count.textContent = `${totalCount} tab${totalCount !== 1 ? 's' : ''}`;
     header.appendChild(count);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'group-chevron';
+    header.appendChild(chevron);
 
     section.appendChild(header);
 
-    for (const tab of tabs) {
+    for (const tab of tabsToShow) {
         section.appendChild(renderTabRow(tab));
     }
 
@@ -115,7 +127,10 @@ function render(query = '') {
 
         const group = groupById[groupId];
         if (group) {
-            tabTree.appendChild(renderGroupSection(group, matchingTabs));
+            // When searching, always expand so matches are visible
+            const collapsed = group.collapsed && !q;
+            const tabsToShow = collapsed ? [] : matchingTabs;
+            tabTree.appendChild(renderGroupSection(group, tabsToShow, tabs.length, collapsed));
         } else {
             for (const tab of matchingTabs) {
                 tabTree.appendChild(renderTabRow(tab));
