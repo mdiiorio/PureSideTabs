@@ -207,10 +207,6 @@ body {
 }
 
 /* Drag and drop */
-.tab-row[draggable] {
-  cursor: grab;
-}
-
 .tab-row.dragging {
   opacity: 0.4;
 }
