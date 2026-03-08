@@ -44,3 +44,7 @@ Access settings via right-click on the extension icon → **Options**, or throug
 | Recent tabs to show in popup | 10 | How many recently used tabs appear in the toolbar popup |
 | Open new tabs inside current group | Off | When enabled, pressing Ctrl+T while on a grouped tab opens the new tab at the end of that group instead of at the end of the window |
 
+## Installation
+
+- If you're using the popup menu, make sure the extension is pinned.
+- Set keyboard shortcuts.
