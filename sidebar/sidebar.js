@@ -34,6 +34,16 @@ function getDropPosition(event, element) {
     return event.clientY < top + height / 2 ? 'before' : 'after';
 }
 
+function positionIndicator(row, position) {
+    const treeRect = tabTree.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const y = (position === 'before' ? rowRect.top : rowRect.bottom) - treeRect.top + tabTree.scrollTop - 1;
+    dropIndicator.style.top = `${y}px`;
+    dropIndicator.style.left = `${rowRect.left - treeRect.left}px`;
+    dropIndicator.style.right = `${treeRect.right - rowRect.right}px`;
+    if (!dropIndicator.isConnected) tabTree.appendChild(dropIndicator);
+}
+
 async function executeDrop(targetTabId, position, targetGroupId) {
     const { tabId, sourceGroupId } = dragState;
     if (tabId === targetTabId) return;
@@ -120,11 +130,7 @@ function renderTabRow(tab) {
         const groupSection = row.closest('.tab-group');
         const groupId = groupSection ? parseInt(groupSection.dataset.groupId) : -1;
         lastDragTarget = { targetTabId: tab.id, position: pos, groupId };
-        if (pos === 'before') {
-            row.parentNode.insertBefore(dropIndicator, row);
-        } else {
-            row.parentNode.insertBefore(dropIndicator, row.nextSibling);
-        }
+        positionIndicator(row, pos);
     });
 
     row.addEventListener('drop', (e) => {
@@ -159,7 +165,12 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
 
     header.addEventListener('dragover', (e) => {
         e.preventDefault();
-        section.appendChild(dropIndicator);
+        const treeRect = tabTree.getBoundingClientRect();
+        const sectionRect = section.getBoundingClientRect();
+        dropIndicator.style.top = `${sectionRect.bottom - treeRect.top + tabTree.scrollTop - 1}px`;
+        dropIndicator.style.left = `${sectionRect.left - treeRect.left}px`;
+        dropIndicator.style.right = `${treeRect.right - sectionRect.right}px`;
+        if (!dropIndicator.isConnected) tabTree.appendChild(dropIndicator);
     });
 
     header.addEventListener('drop', (e) => {
