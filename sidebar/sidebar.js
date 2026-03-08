@@ -154,6 +154,30 @@ async function loadTabs() {
     render(searchInput.value);
 }
 
+// --- Patch updates (in-place DOM mutation, no full re-render) ---
+
+function patchTab(tabId, changeInfo) {
+    const tab = allTabs.find(t => t.id === tabId);
+    if (tab) Object.assign(tab, changeInfo);
+
+    const row = tabTree.querySelector(`[data-tab-id="${tabId}"]`);
+    if (!row) return; // tab may be inside a collapsed group — in-memory update is enough
+
+    if ('title' in changeInfo) {
+        const titleEl = row.querySelector('.tab-title');
+        if (titleEl) {
+            titleEl.textContent = changeInfo.title || tab?.url || '(New Tab)';
+            titleEl.title = changeInfo.title || tab?.url || '';
+        }
+    }
+
+    if ('favIconUrl' in changeInfo) {
+        const img = row.querySelector('.tab-favicon');
+        const updatedTab = allTabs.find(t => t.id === tabId);
+        if (img && updatedTab) img.replaceWith(renderFavicon(updatedTab));
+    }
+}
+
 // --- Event listeners ---
 
 searchInput.addEventListener('input', () => render(searchInput.value));
@@ -161,9 +185,17 @@ searchInput.addEventListener('input', () => render(searchInput.value));
 chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if ('title' in changeInfo || 'favIconUrl' in changeInfo || 'status' in changeInfo || 'groupId' in changeInfo) loadTabs();
+    if ('groupId' in changeInfo) {
+        loadTabs();
+    } else if ('title' in changeInfo || 'favIconUrl' in changeInfo) {
+        patchTab(tabId, changeInfo);
+    }
 });
-chrome.tabs.onActivated.addListener(loadTabs);
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+    allTabs.forEach(t => { t.active = t.id === tabId; });
+    tabTree.querySelector('.tab-row.active')?.classList.remove('active');
+    tabTree.querySelector(`[data-tab-id="${tabId}"]`)?.classList.add('active');
+});
 chrome.tabs.onMoved.addListener(loadTabs);
 chrome.tabGroups.onCreated.addListener(loadTabs);
 chrome.tabGroups.onRemoved.addListener(loadTabs);
