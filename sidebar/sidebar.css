@@ -219,6 +219,11 @@ body {
   opacity: 0.4;
 }
 
+.tab-group.drop-target {
+  outline: 1px solid var(--group-color);
+  background: color-mix(in srgb, var(--group-bg) 60%, var(--group-color) 40%);
+}
+
 .drop-indicator {
   position: absolute;
   height: 2px;

@@ -6,10 +6,11 @@ let allTabs = [];
 let allGroups = [];
 
 // --- Drag and drop state ---
-let dragState = null;      // { tabId, sourceGroupId }
-let dragLocked = false;    // suppresses loadTabs() while a drag is in flight
+let dragState = null;       // { tabId, sourceGroupId }
+let dragLocked = false;     // suppresses loadTabs() while a drag is in flight
 let dropPromise = Promise.resolve();
-let lastDragTarget = null; // { targetTabId, position, groupId } — updated on each dragover
+let lastDragTarget = null;  // { targetTabId, position, groupId } — updated on each dragover
+let hoverExpandTimer = null;
 
 const dropIndicator = document.createElement('div');
 dropIndicator.className = 'drop-indicator';
@@ -140,7 +141,10 @@ function renderTabRow(tab) {
     row.addEventListener('dragend', () => {
         row.classList.remove('dragging');
         dropIndicator.remove();
+        tabTree.querySelector('.drop-target')?.classList.remove('drop-target');
         lastDragTarget = null;
+        clearTimeout(hoverExpandTimer);
+        hoverExpandTimer = null;
         dropPromise.finally(() => {
             dragState = null;
             dragLocked = false;
@@ -229,7 +233,10 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
     header.addEventListener('dragend', () => {
         section.classList.remove('dragging');
         dropIndicator.remove();
+        tabTree.querySelector('.drop-target')?.classList.remove('drop-target');
         lastDragTarget = null;
+        clearTimeout(hoverExpandTimer);
+        hoverExpandTimer = null;
         dropPromise.finally(() => {
             dragState = null;
             dragLocked = false;
@@ -252,18 +259,33 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
             lastDragTarget = { targetTabId, position: pos };
             positionIndicator(section, pos);
         } else {
-            // Tab drag: indicator at bottom of group = append to group
-            const treeRect = tabTree.getBoundingClientRect();
-            const sectionRect = section.getBoundingClientRect();
-            dropIndicator.style.top = `${sectionRect.bottom - treeRect.top + tabTree.scrollTop - 1}px`;
-            dropIndicator.style.left = `${sectionRect.left - treeRect.left}px`;
-            dropIndicator.style.right = `${treeRect.right - sectionRect.right}px`;
-            if (!dropIndicator.isConnected) tabTree.appendChild(dropIndicator);
+            // Tab drag: highlight the group to show the tab will be added to it
+            dropIndicator.remove();
+            section.classList.add('drop-target');
+
+            // Hover for 1s over a collapsed group to expand it
+            if (group.collapsed && hoverExpandTimer === null) {
+                hoverExpandTimer = setTimeout(async () => {
+                    hoverExpandTimer = null;
+                    await chrome.tabGroups.update(group.id, { collapsed: false });
+                    const g = allGroups.find(ag => ag.id === group.id);
+                    if (g) g.collapsed = false;
+                    render(searchInput.value);
+                }, 1000);
+            }
         }
+    });
+
+    header.addEventListener('dragleave', (e) => {
+        if (header.contains(e.relatedTarget)) return;
+        section.classList.remove('drop-target');
+        clearTimeout(hoverExpandTimer);
+        hoverExpandTimer = null;
     });
 
     header.addEventListener('drop', (e) => {
         e.preventDefault();
+        section.classList.remove('drop-target');
         if (dragState?.type === 'group') {
             if (!lastDragTarget) return;
             dropPromise = executeGroupDrop(lastDragTarget.targetTabId, lastDragTarget.position);
