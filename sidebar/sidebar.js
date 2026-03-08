@@ -3,6 +3,7 @@ const tabTree = document.getElementById('tab-tree');
 // --- State ---
 let allTabs = [];
 let allGroups = [];
+let splitPositions = new Map(); // tabId -> 'first' | 'middle' | 'last'
 
 // --- Drag and drop state ---
 let dragState = null;       // { tabId, sourceGroupId }
@@ -122,7 +123,8 @@ async function executeGroupDrop(targetTabId, position) {
 
 function renderTabRow(tab) {
     const row = document.createElement('div');
-    row.className = 'tab-row' + (tab.active ? ' active' : '');
+    const splitPos = splitPositions.get(tab.id);
+    row.className = 'tab-row' + (tab.active ? ' active' : '') + (splitPos ? ` split-${splitPos}` : '');
     row.dataset.tabId = tab.id;
 
     row.appendChild(renderFavicon(tab));
@@ -340,6 +342,22 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
 
 function render() {
     tabTree.innerHTML = '';
+
+    // Build split view position map
+    splitPositions.clear();
+    const splitGroups = new Map();
+    for (const tab of allTabs) {
+        if (tab.splitViewId !== chrome.tabs.SPLIT_VIEW_ID_NONE) {
+            if (!splitGroups.has(tab.splitViewId)) splitGroups.set(tab.splitViewId, []);
+            splitGroups.get(tab.splitViewId).push(tab.id);
+        }
+    }
+    for (const ids of splitGroups.values()) {
+        if (ids.length < 2) continue;
+        ids.forEach((id, i) => {
+            splitPositions.set(id, i === 0 ? 'first' : i === ids.length - 1 ? 'last' : 'middle');
+        });
+    }
 
     const groupById = Object.fromEntries(allGroups.map(g => [g.id, g]));
 

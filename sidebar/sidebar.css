@@ -50,6 +50,7 @@ body {
 
 /* Tab row */
 .tab-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -60,6 +61,35 @@ body {
   margin: 0 4px;
   transition: background 0.1s;
 }
+
+/* Split view bracket */
+.tab-row.split-first::before,
+.tab-row.split-middle::before,
+.tab-row.split-last::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  width: 6px;
+  border-left: 2px solid var(--accent);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.tab-row.split-first::before {
+  top: 50%;
+  bottom: 0;
+  border-top: 2px solid var(--accent);
+  border-top-left-radius: 2px;
+}
+
+.tab-row.split-last::before {
+  top: 0;
+  bottom: 50%;
+  border-bottom: 2px solid var(--accent);
+  border-bottom-left-radius: 2px;
+}
+
+.tab-row.split-middle::before { top: 0; bottom: 0; }
 
 .tab-row:hover {
   background: var(--hover-bg);
