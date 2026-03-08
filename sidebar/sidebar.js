@@ -88,8 +88,11 @@ async function executeGroupDrop(targetTabId, position) {
     // Chrome removes the group tabs before inserting, shifting subsequent indices down
     if (groupTabs[0].index < targetTab.index) index -= groupTabs.length;
 
+    const wasCollapsed = allGroups.find(g => g.id === groupId)?.collapsed ?? false;
+
     try {
         await chrome.tabGroups.move(groupId, { index });
+        if (wasCollapsed) await chrome.tabGroups.update(groupId, { collapsed: true });
     } catch (e) {
         console.error('executeGroupDrop failed:', e);
     }
