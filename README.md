@@ -1,10 +1,10 @@
-# SafeTreeTab
+# PureSideTabs
 
 A Chrome extension that lists your open tabs in a vertical sidebar. Nothing more, nothing less.
 
 ## Why trust this extension?
 
-Most tab manager extensions request broad permissions, bundle megabytes of third-party code, and phone home to remote servers. SafeTreeTab does none of that.
+Most tab manager extensions request broad permissions, bundle megabytes of third-party code, and phone home to remote servers. PureSideTabs does none of that.
 
 **Permissions requested — and why:**
 
@@ -37,7 +37,7 @@ No other permissions are requested. The extension cannot access page content, ma
 
 ## Settings
 
-Access settings via right-click on the extension icon → **Options**, or through `chrome://extensions` → SafeTreeTab → **Details** → **Extension options**.
+Access settings via right-click on the extension icon → **Options**, or through `chrome://extensions` → PureSideTabs → **Details** → **Extension options**.
 
 | Setting | Default | Description |
 |---------|---------|-------------|

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "SafeTreeTab",
+  "name": "PureSideTabs",
   "version": "0.1.0",
   "description": "View and manage your open tabs in a sidebar tree view.",
   "permissions": [
@@ -25,7 +25,7 @@
     "default_path": "sidebar/sidebar.html"
   },
   "action": {
-    "default_title": "Open SafeTreeTab",
+    "default_title": "Open PureSideTabs",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

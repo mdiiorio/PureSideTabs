@@ -1,5 +1,5 @@
 {
-  "name": "safetreetab",
+  "name": "puresidetabs",
   "version": "1.0.0",
   "description": "A Chrome extension that lists your open tabs in a vertical sidebar. Nothing more, nothing less.",
   "main": "background.js",
