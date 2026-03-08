@@ -206,6 +206,13 @@ body {
   padding-left: 20px;
 }
 
+/* Pinned tab separator */
+.pinned-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 8px;
+}
+
 /* Drag and drop */
 .tab-row.dragging,
 .tab-group.dragging {

@@ -309,6 +309,8 @@ function render(query = '') {
     }
 
     let anyRendered = false;
+    let renderedPinned = false;
+    let separatorInserted = false;
 
     for (const { groupId, tabs } of segments) {
         const matchingTabs = q
@@ -322,12 +324,27 @@ function render(query = '') {
 
         const group = groupById[groupId];
         if (group) {
+            // Groups can't contain pinned tabs — insert separator before first group after pinned section
+            if (renderedPinned && !separatorInserted) {
+                const sep = document.createElement('div');
+                sep.className = 'pinned-separator';
+                tabTree.appendChild(sep);
+                separatorInserted = true;
+            }
             // When searching, always expand so matches are visible
             const collapsed = group.collapsed && !q;
             const tabsToShow = collapsed ? [] : matchingTabs;
             tabTree.appendChild(renderGroupSection(group, tabsToShow, tabs.length, collapsed));
         } else {
             for (const tab of matchingTabs) {
+                if (tab.pinned) {
+                    renderedPinned = true;
+                } else if (renderedPinned && !separatorInserted) {
+                    const sep = document.createElement('div');
+                    sep.className = 'pinned-separator';
+                    tabTree.appendChild(sep);
+                    separatorInserted = true;
+                }
                 tabTree.appendChild(renderTabRow(tab));
             }
         }
