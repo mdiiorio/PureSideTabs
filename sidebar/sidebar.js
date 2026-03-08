@@ -150,6 +150,10 @@ function renderTabRow(tab) {
 
     row.addEventListener('dragover', (e) => {
         e.preventDefault();
+        if (tab.pinned) {
+            const draggedTab = dragState?.type === 'tab' ? allTabs.find(t => t.id === dragState.tabId) : null;
+            if (!draggedTab?.pinned) return; // don't allow dropping non-pinned or groups into pinned section
+        }
         if (dragState?.type === 'group') {
             if (tab.groupId === dragState.groupId) return; // skip rows in the dragged group
             const groupSection = row.closest('.tab-group');
