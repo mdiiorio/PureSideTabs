@@ -32,7 +32,47 @@ async function pushMru(tabId) {
     await chrome.storage.session.set({ mruTabIds: updated });
 }
 
-chrome.tabs.onActivated.addListener(({ tabId }) => pushMru(tabId));
+// Track the active tab per window synchronously so onCreated can read it
+// without a race against onActivated firing for the new tab
+const activeTabByWindow = new Map();
+
+chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
+    activeTabByWindow.set(windowId, tabId);
+    pushMru(tabId);
+});
+
+// --- New tab group placement ---
+
+chrome.tabs.onCreated.addListener(async (tab) => {
+    // Only intercept new tab pages, not link-opened tabs
+    if (tab.pendingUrl !== 'chrome://newtab/') return;
+
+    // Capture synchronously before any await — onActivated for the new tab
+    // may fire before async operations complete, overwriting activeTabByWindow
+    const prevTabId = activeTabByWindow.get(tab.windowId);
+
+    const { newTabInGroup = false } = await chrome.storage.sync.get('newTabInGroup');
+    if (!newTabInGroup) return;
+
+    if (!prevTabId || prevTabId === tab.id) return;
+
+    let prevTab;
+    try {
+        prevTab = await chrome.tabs.get(prevTabId);
+    } catch {
+        return;
+    }
+    if (prevTab.groupId === -1) return;
+
+    const groupTabs = await chrome.tabs.query({ groupId: prevTab.groupId });
+    groupTabs.sort((a, b) => a.index - b.index);
+    const lastGroupTab = groupTabs[groupTabs.length - 1];
+    if (!lastGroupTab) return;
+
+    const index = lastGroupTab.index + (tab.index > lastGroupTab.index ? 1 : 0);
+    await chrome.tabs.move(tab.id, { index });
+    await chrome.tabs.group({ tabIds: [tab.id], groupId: prevTab.groupId });
+});
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
     const { mruTabIds = [] } = await chrome.storage.session.get('mruTabIds');

@@ -49,3 +49,11 @@ h1 {
 .setting-row input[type="number"]:focus {
     border-color: var(--accent);
 }
+
+.setting-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+}
