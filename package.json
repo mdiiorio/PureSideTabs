@@ -1,0 +1,16 @@
+{
+  "name": "safetreetab",
+  "version": "1.0.0",
+  "description": "A Chrome extension that lists your open tabs in a vertical sidebar. Nothing more, nothing less.",
+  "main": "background.js",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
