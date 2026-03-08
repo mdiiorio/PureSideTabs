@@ -205,6 +205,27 @@ body {
   padding-left: 20px;
 }
 
+/* Drag and drop */
+.tab-row[draggable] {
+  cursor: grab;
+}
+
+.tab-row.dragging {
+  opacity: 0.4;
+}
+
+.drop-indicator {
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  margin: 1px 8px;
+  pointer-events: none;
+}
+
+.tab-group .drop-indicator {
+  margin: 1px 4px;
+}
+
 /* Empty state */
 .empty-state {
   display: flex;

@@ -5,6 +5,15 @@ const searchInput = document.getElementById('search-input');
 let allTabs = [];
 let allGroups = [];
 
+// --- Drag and drop state ---
+let dragState = null;      // { tabId, sourceGroupId }
+let dragLocked = false;    // suppresses loadTabs() while a drag is in flight
+let dropPromise = Promise.resolve();
+let lastDragTarget = null; // { targetTabId, position, groupId } — updated on each dragover
+
+const dropIndicator = document.createElement('div');
+dropIndicator.className = 'drop-indicator';
+
 // --- Group color map ---
 const GROUP_COLORS = {
     grey:   { color: '#9aa0a6', bg: 'rgba(154, 160, 166, 0.12)' },
@@ -17,6 +26,43 @@ const GROUP_COLORS = {
     cyan:   { color: '#00acc1', bg: 'rgba(  0, 172, 193, 0.12)' },
     orange: { color: '#fa7b17', bg: 'rgba(250, 123,  23, 0.12)' },
 };
+
+// --- Drag and drop logic ---
+
+function getDropPosition(event, element) {
+    const { top, height } = element.getBoundingClientRect();
+    return event.clientY < top + height / 2 ? 'before' : 'after';
+}
+
+async function executeDrop(targetTabId, position, targetGroupId) {
+    const { tabId, sourceGroupId } = dragState;
+    if (tabId === targetTabId) return;
+
+    const targetTab = allTabs.find(t => t.id === targetTabId);
+    if (!targetTab) return;
+
+    const draggedTab = allTabs.find(t => t.id === tabId);
+    let index = position === 'before' ? targetTab.index : targetTab.index + 1;
+    // Chrome removes the dragged tab before inserting, shifting subsequent indices down
+    if (draggedTab && draggedTab.index < targetTab.index) index -= 1;
+
+    try {
+        if (targetGroupId !== -1) {
+            // Group first so Chrome places it inside the group, then position precisely
+            await chrome.tabs.group({ tabIds: [tabId], groupId: targetGroupId });
+            await chrome.tabs.move(tabId, { index });
+        } else {
+            await chrome.tabs.move(tabId, { index });
+            if (sourceGroupId !== -1) await chrome.tabs.ungroup([tabId]);
+        }
+    } catch (e) {
+        console.error('executeDrop failed:', e);
+    }
+}
+
+async function executeDropOnGroup(groupId) {
+    await chrome.tabs.group({ tabIds: [dragState.tabId], groupId });
+}
 
 // --- Render ---
 
@@ -47,6 +93,47 @@ function renderTabRow(tab) {
         chrome.tabs.update(tab.id, { active: true });
     });
 
+    row.draggable = true;
+
+    row.addEventListener('dragstart', (e) => {
+        dragState = { tabId: tab.id, sourceGroupId: tab.groupId ?? -1 };
+        dragLocked = true;
+        e.dataTransfer.effectAllowed = 'move';
+        // rAF so Chrome captures the un-dimmed element as the drag ghost
+        requestAnimationFrame(() => row.classList.add('dragging'));
+    });
+
+    row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        dropIndicator.remove();
+        lastDragTarget = null;
+        dropPromise.finally(() => {
+            dragState = null;
+            dragLocked = false;
+            loadTabs();
+        });
+    });
+
+    row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const pos = getDropPosition(e, row);
+        const groupSection = row.closest('.tab-group');
+        const groupId = groupSection ? parseInt(groupSection.dataset.groupId) : -1;
+        lastDragTarget = { targetTabId: tab.id, position: pos, groupId };
+        if (pos === 'before') {
+            row.parentNode.insertBefore(dropIndicator, row);
+        } else {
+            row.parentNode.insertBefore(dropIndicator, row.nextSibling);
+        }
+    });
+
+    row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!lastDragTarget) return;
+        const { targetTabId, position, groupId } = lastDragTarget;
+        dropPromise = executeDrop(targetTabId, position, groupId);
+    });
+
     return row;
 }
 
@@ -58,6 +145,7 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
 
     const section = document.createElement('div');
     section.className = 'tab-group' + (collapsed ? ' collapsed' : '');
+    section.dataset.groupId = group.id;
     section.style.setProperty('--group-color', color);
     section.style.setProperty('--group-bg', bg);
 
@@ -67,6 +155,16 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
         chrome.tabGroups.update(group.id, { collapsed: !group.collapsed })
             .then(loadTabs)
             .catch(console.error);
+    });
+
+    header.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        section.appendChild(dropIndicator);
+    });
+
+    header.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropPromise = executeDropOnGroup(group.id);
     });
 
     const chevron = document.createElement('span');
@@ -145,9 +243,23 @@ function render(query = '') {
     tabTree.querySelector('.tab-row.active')?.scrollIntoView({ block: 'nearest' });
 }
 
+// Fallback handlers on the container so drops in gaps between rows still land
+tabTree.addEventListener('dragover', (e) => {
+    if (!dragState) return;
+    e.preventDefault();
+});
+
+tabTree.addEventListener('drop', (e) => {
+    if (!dragState || !lastDragTarget) return;
+    e.preventDefault();
+    const { targetTabId, position, groupId } = lastDragTarget;
+    dropPromise = executeDrop(targetTabId, position, groupId);
+});
+
 // --- Data fetching ---
 
 async function loadTabs() {
+    if (dragLocked) return;
     const currentWindow = await chrome.windows.getCurrent({ populate: true });
     allGroups = await chrome.tabGroups.query({ windowId: currentWindow.id });
     allTabs = currentWindow.tabs.sort((a, b) => a.index - b.index);
