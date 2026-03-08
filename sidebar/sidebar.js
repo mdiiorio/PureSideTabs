@@ -74,6 +74,27 @@ async function executeDropOnGroup(groupId) {
     await chrome.tabs.group({ tabIds: [dragState.tabId], groupId });
 }
 
+async function executeGroupDrop(targetTabId, position) {
+    const { groupId } = dragState;
+    const groupTabs = allTabs
+        .filter(t => t.groupId === groupId)
+        .sort((a, b) => a.index - b.index);
+    if (!groupTabs.length) return;
+
+    const targetTab = allTabs.find(t => t.id === targetTabId);
+    if (!targetTab || targetTab.groupId === groupId) return;
+
+    let index = position === 'before' ? targetTab.index : targetTab.index + 1;
+    // Chrome removes the group tabs before inserting, shifting subsequent indices down
+    if (groupTabs[0].index < targetTab.index) index -= groupTabs.length;
+
+    try {
+        await chrome.tabGroups.move(groupId, { index });
+    } catch (e) {
+        console.error('executeGroupDrop failed:', e);
+    }
+}
+
 // --- Render ---
 
 function renderTabRow(tab) {
@@ -106,7 +127,7 @@ function renderTabRow(tab) {
     row.draggable = true;
 
     row.addEventListener('dragstart', (e) => {
-        dragState = { tabId: tab.id, sourceGroupId: tab.groupId ?? -1 };
+        dragState = { type: 'tab', tabId: tab.id, sourceGroupId: tab.groupId ?? -1 };
         dragLocked = true;
         e.dataTransfer.effectAllowed = 'move';
         // rAF so Chrome captures the un-dimmed element as the drag ghost
@@ -126,6 +147,28 @@ function renderTabRow(tab) {
 
     row.addEventListener('dragover', (e) => {
         e.preventDefault();
+        if (dragState?.type === 'group') {
+            if (tab.groupId === dragState.groupId) return; // skip rows in the dragged group
+            const groupSection = row.closest('.tab-group');
+            if (groupSection) {
+                // Snap indicator to the boundary of the hovered group, not between individual rows
+                const pos = getDropPosition(e, groupSection);
+                const groupTabsSorted = allTabs
+                    .filter(t => t.groupId === parseInt(groupSection.dataset.groupId))
+                    .sort((a, b) => a.index - b.index);
+                if (!groupTabsSorted.length) return;
+                const targetTabId = pos === 'before'
+                    ? groupTabsSorted[0].id
+                    : groupTabsSorted[groupTabsSorted.length - 1].id;
+                lastDragTarget = { targetTabId, position: pos };
+                positionIndicator(groupSection, pos);
+            } else {
+                const pos = getDropPosition(e, row);
+                lastDragTarget = { targetTabId: tab.id, position: pos };
+                positionIndicator(row, pos);
+            }
+            return;
+        }
         const pos = getDropPosition(e, row);
         const groupSection = row.closest('.tab-group');
         const groupId = groupSection ? parseInt(groupSection.dataset.groupId) : -1;
@@ -137,7 +180,11 @@ function renderTabRow(tab) {
         e.preventDefault();
         if (!lastDragTarget) return;
         const { targetTabId, position, groupId } = lastDragTarget;
-        dropPromise = executeDrop(targetTabId, position, groupId);
+        if (dragState?.type === 'group') {
+            dropPromise = executeGroupDrop(targetTabId, position);
+        } else {
+            dropPromise = executeDrop(targetTabId, position, groupId);
+        }
     });
 
     return row;
@@ -163,19 +210,59 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
             .catch(console.error);
     });
 
+    header.draggable = true;
+
+    header.addEventListener('dragstart', (e) => {
+        dragState = { type: 'group', groupId: group.id };
+        dragLocked = true;
+        e.dataTransfer.effectAllowed = 'move';
+        requestAnimationFrame(() => section.classList.add('dragging'));
+    });
+
+    header.addEventListener('dragend', () => {
+        section.classList.remove('dragging');
+        dropIndicator.remove();
+        lastDragTarget = null;
+        dropPromise.finally(() => {
+            dragState = null;
+            dragLocked = false;
+            loadTabs();
+        });
+    });
+
     header.addEventListener('dragover', (e) => {
         e.preventDefault();
-        const treeRect = tabTree.getBoundingClientRect();
-        const sectionRect = section.getBoundingClientRect();
-        dropIndicator.style.top = `${sectionRect.bottom - treeRect.top + tabTree.scrollTop - 1}px`;
-        dropIndicator.style.left = `${sectionRect.left - treeRect.left}px`;
-        dropIndicator.style.right = `${treeRect.right - sectionRect.right}px`;
-        if (!dropIndicator.isConnected) tabTree.appendChild(dropIndicator);
+        if (dragState?.type === 'group') {
+            if (dragState.groupId === group.id) return; // skip own header
+            const pos = getDropPosition(e, section);
+            const groupTabsSorted = allTabs
+                .filter(t => t.groupId === group.id)
+                .sort((a, b) => a.index - b.index);
+            if (!groupTabsSorted.length) return;
+            const targetTabId = pos === 'before'
+                ? groupTabsSorted[0].id
+                : groupTabsSorted[groupTabsSorted.length - 1].id;
+            lastDragTarget = { targetTabId, position: pos };
+            positionIndicator(section, pos);
+        } else {
+            // Tab drag: indicator at bottom of group = append to group
+            const treeRect = tabTree.getBoundingClientRect();
+            const sectionRect = section.getBoundingClientRect();
+            dropIndicator.style.top = `${sectionRect.bottom - treeRect.top + tabTree.scrollTop - 1}px`;
+            dropIndicator.style.left = `${sectionRect.left - treeRect.left}px`;
+            dropIndicator.style.right = `${treeRect.right - sectionRect.right}px`;
+            if (!dropIndicator.isConnected) tabTree.appendChild(dropIndicator);
+        }
     });
 
     header.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropPromise = executeDropOnGroup(group.id);
+        if (dragState?.type === 'group') {
+            if (!lastDragTarget) return;
+            dropPromise = executeGroupDrop(lastDragTarget.targetTabId, lastDragTarget.position);
+        } else {
+            dropPromise = executeDropOnGroup(group.id);
+        }
     });
 
     const chevron = document.createElement('span');
@@ -264,7 +351,11 @@ tabTree.addEventListener('drop', (e) => {
     if (!dragState || !lastDragTarget) return;
     e.preventDefault();
     const { targetTabId, position, groupId } = lastDragTarget;
-    dropPromise = executeDrop(targetTabId, position, groupId);
+    if (dragState.type === 'group') {
+        dropPromise = executeGroupDrop(targetTabId, position);
+    } else {
+        dropPromise = executeDrop(targetTabId, position, groupId);
+    }
 });
 
 // --- Data fetching ---
