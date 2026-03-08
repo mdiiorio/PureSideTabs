@@ -1,5 +1,4 @@
 const tabTree = document.getElementById('tab-tree');
-const searchInput = document.getElementById('search-input');
 
 // --- State ---
 let allTabs = [];
@@ -291,7 +290,7 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
                     await chrome.tabGroups.update(group.id, { collapsed: false });
                     const g = allGroups.find(ag => ag.id === group.id);
                     if (g) g.collapsed = false;
-                    render(searchInput.value);
+                    render();
                 }, 1000);
             }
         }
@@ -339,10 +338,9 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
     return section;
 }
 
-function render(query = '') {
+function render() {
     tabTree.innerHTML = '';
 
-    const q = query.toLowerCase();
     const groupById = Object.fromEntries(allGroups.map(g => [g.id, g]));
 
     // Walk tabs in order, batching consecutive tabs that share a groupId
@@ -356,20 +354,10 @@ function render(query = '') {
         }
     }
 
-    let anyRendered = false;
     let renderedPinned = false;
     let separatorInserted = false;
 
     for (const { groupId, tabs } of segments) {
-        const matchingTabs = q
-            ? tabs.filter(t =>
-                (t.title || '').toLowerCase().includes(q) ||
-                (t.url || '').toLowerCase().includes(q))
-            : tabs;
-
-        if (matchingTabs.length === 0) continue;
-        anyRendered = true;
-
         const group = groupById[groupId];
         if (group) {
             // Groups can't contain pinned tabs — insert separator before first group after pinned section
@@ -379,12 +367,11 @@ function render(query = '') {
                 tabTree.appendChild(sep);
                 separatorInserted = true;
             }
-            // When searching, always expand so matches are visible
-            const collapsed = group.collapsed && !q;
-            const tabsToShow = collapsed ? [] : matchingTabs;
+            const collapsed = group.collapsed;
+            const tabsToShow = collapsed ? [] : tabs;
             tabTree.appendChild(renderGroupSection(group, tabsToShow, tabs.length, collapsed));
         } else {
-            for (const tab of matchingTabs) {
+            for (const tab of tabs) {
                 if (tab.pinned) {
                     renderedPinned = true;
                 } else if (renderedPinned && !separatorInserted) {
@@ -396,14 +383,6 @@ function render(query = '') {
                 tabTree.appendChild(renderTabRow(tab));
             }
         }
-    }
-
-    if (!anyRendered) {
-        const empty = document.createElement('div');
-        empty.className = 'empty-state';
-        empty.textContent = 'No tabs found.';
-        tabTree.appendChild(empty);
-        return;
     }
 
     tabTree.querySelector('.tab-row.active')?.scrollIntoView({ block: 'nearest' });
@@ -433,7 +412,7 @@ async function loadTabs() {
     const currentWindow = await chrome.windows.getCurrent({ populate: true });
     allGroups = await chrome.tabGroups.query({ windowId: currentWindow.id });
     allTabs = currentWindow.tabs.sort((a, b) => a.index - b.index);
-    render(searchInput.value);
+    render();
 }
 
 // --- Patch updates (in-place DOM mutation, no full re-render) ---
@@ -461,8 +440,6 @@ function patchTab(tabId, changeInfo) {
 }
 
 // --- Event listeners ---
-
-searchInput.addEventListener('input', () => render(searchInput.value));
 
 chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);

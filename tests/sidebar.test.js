@@ -40,9 +40,6 @@ test('sidebar loads and shows the current tab', async ({ context, extensionId })
     const sidebar = await context.newPage();
     await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
 
-    // Search input should be present
-    await expect(sidebar.locator('#search-input')).toBeVisible();
-
     // At least one tab row should render (we opened example.com above)
     await expect(sidebar.locator('.tab-row').first()).toBeVisible();
 
