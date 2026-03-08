@@ -31,7 +31,89 @@ async function pushMru(tabId, windowId) {
     const { [key]: mruTabIds = [] } = await chrome.storage.session.get(key);
     const updated = [tabId, ...mruTabIds.filter(id => id !== tabId)].slice(0, MAX_MRU);
     await chrome.storage.session.set({ [key]: updated });
+    persistMru(windowId); // fire and forget
 }
+
+function isUserUrl(url) {
+    return url && url !== 'chrome://newtab/' && url !== 'about:blank' && url !== 'about:newtab';
+}
+
+async function persistMru(windowId) {
+    const tokenKey = `windowToken_${windowId}`;
+    let { [tokenKey]: windowToken } = await chrome.storage.session.get(tokenKey);
+    if (!windowToken) {
+        windowToken = crypto.randomUUID();
+        await chrome.storage.session.set({ [tokenKey]: windowToken });
+    }
+
+    const mruKey = `mru_${windowId}`;
+    const { [mruKey]: mruTabIds = [] } = await chrome.storage.session.get(mruKey);
+    if (mruTabIds.length === 0) return;
+
+    const tabs = await chrome.tabs.query({ windowId });
+    const urlById = Object.fromEntries(tabs.map(t => [t.id, t.url || t.pendingUrl || '']));
+    const fingerprint = [...new Set(tabs.map(t => t.url || t.pendingUrl || '').filter(isUserUrl))];
+    const mruUrls = mruTabIds.map(id => urlById[id]).filter(isUserUrl);
+    if (mruUrls.length === 0) return;
+
+    const { persistedMru = {} } = await chrome.storage.local.get('persistedMru');
+    persistedMru[windowToken] = { fingerprint, mruUrls, savedAt: Date.now() };
+
+    const entries = Object.entries(persistedMru);
+    if (entries.length > 10) {
+        entries.sort((a, b) => b[1].savedAt - a[1].savedAt);
+        await chrome.storage.local.set({ persistedMru: Object.fromEntries(entries.slice(0, 10)) });
+    } else {
+        await chrome.storage.local.set({ persistedMru });
+    }
+}
+
+async function restoreMru() {
+    const { persistedMru = {} } = await chrome.storage.local.get('persistedMru');
+    if (Object.keys(persistedMru).length === 0) return;
+
+    const windows = await chrome.windows.getAll({ populate: true });
+    const usedTokens = new Set();
+
+    for (const win of windows) {
+        const tabByUrl = new Map();
+        for (const tab of win.tabs) {
+            const url = tab.url || tab.pendingUrl || '';
+            if (isUserUrl(url)) tabByUrl.set(url, tab.id);
+        }
+        if (tabByUrl.size === 0) continue;
+
+        let bestToken = null;
+        let bestScore = 0;
+        for (const [token, entry] of Object.entries(persistedMru)) {
+            if (usedTokens.has(token)) continue;
+            const score = entry.fingerprint.filter(url => tabByUrl.has(url)).length;
+            if (score > bestScore) { bestScore = score; bestToken = token; }
+        }
+        if (!bestToken) continue;
+        usedTokens.add(bestToken);
+
+        const restoredIds = persistedMru[bestToken].mruUrls
+            .map(url => tabByUrl.get(url))
+            .filter(Boolean);
+        if (restoredIds.length === 0) continue;
+
+        await chrome.storage.session.set({
+            [`mru_${win.id}`]: restoredIds,
+            [`windowToken_${win.id}`]: bestToken,
+        });
+
+        const activeTab = win.tabs.find(t => t.active);
+        if (activeTab) activeTabByWindow.set(win.id, activeTab.id);
+    }
+}
+
+// Run immediately for extension restarts (tabs already exist, URLs available)
+restoreMru();
+
+// Also run on browser startup — onStartup fires after Chrome has restored
+// the session, giving tabs time to have their URLs populated
+chrome.runtime.onStartup.addListener(restoreMru);
 
 // Track the active tab per window synchronously so onCreated can read it
 // without a race against onActivated firing for the new tab
