@@ -26,10 +26,11 @@ chrome.commands.onCommand.addListener((command, tab) => {
 
 const MAX_MRU = 10;
 
-async function pushMru(tabId) {
-    const { mruTabIds = [] } = await chrome.storage.session.get('mruTabIds');
+async function pushMru(tabId, windowId) {
+    const key = `mru_${windowId}`;
+    const { [key]: mruTabIds = [] } = await chrome.storage.session.get(key);
     const updated = [tabId, ...mruTabIds.filter(id => id !== tabId)].slice(0, MAX_MRU);
-    await chrome.storage.session.set({ mruTabIds: updated });
+    await chrome.storage.session.set({ [key]: updated });
 }
 
 // Track the active tab per window synchronously so onCreated can read it
@@ -38,7 +39,7 @@ const activeTabByWindow = new Map();
 
 chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
     activeTabByWindow.set(windowId, tabId);
-    pushMru(tabId);
+    pushMru(tabId, windowId);
 });
 
 // --- New tab group placement ---
@@ -74,7 +75,14 @@ chrome.tabs.onCreated.addListener(async (tab) => {
     await chrome.tabs.group({ tabIds: [tab.id], groupId: prevTab.groupId });
 });
 
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-    const { mruTabIds = [] } = await chrome.storage.session.get('mruTabIds');
-    await chrome.storage.session.set({ mruTabIds: mruTabIds.filter(id => id !== tabId) });
+chrome.tabs.onRemoved.addListener(async (tabId, { windowId, isWindowClosing }) => {
+    if (isWindowClosing) return; // window cleanup handles this
+    const key = `mru_${windowId}`;
+    const { [key]: mruTabIds = [] } = await chrome.storage.session.get(key);
+    await chrome.storage.session.set({ [key]: mruTabIds.filter(id => id !== tabId) });
+});
+
+chrome.windows.onRemoved.addListener(async (windowId) => {
+    await chrome.storage.session.remove(`mru_${windowId}`);
+    activeTabByWindow.delete(windowId);
 });

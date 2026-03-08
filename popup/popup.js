@@ -58,9 +58,12 @@ function renderRow(tab) {
 const DEFAULT_MRU_LIMIT = 10;
 
 async function render() {
-    const [{ mruTabIds = [] }, allTabs, { mruLimit = DEFAULT_MRU_LIMIT }] = await Promise.all([
-        chrome.storage.session.get('mruTabIds'),
-        chrome.tabs.query({}),
+    const currentWindow = await chrome.windows.getCurrent();
+    const mruKey = `mru_${currentWindow.id}`;
+
+    const [{ [mruKey]: mruTabIds = [] }, allTabs, { mruLimit = DEFAULT_MRU_LIMIT }] = await Promise.all([
+        chrome.storage.session.get(mruKey),
+        chrome.tabs.query({ windowId: currentWindow.id }),
         chrome.storage.sync.get('mruLimit'),
     ]);
 
