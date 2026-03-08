@@ -72,7 +72,27 @@ async function executeDrop(targetTabId, position, targetGroupId) {
 }
 
 async function executeDropOnGroup(groupId) {
-    await chrome.tabs.group({ tabIds: [dragState.tabId], groupId });
+    const { tabId } = dragState;
+    try {
+        await chrome.tabs.group({ tabIds: [tabId], groupId });
+
+        // chrome.tabs.group() places the tab wherever it wants, so query fresh
+        // positions and move to end if needed
+        const currentWindow = await chrome.windows.getCurrent({ populate: true });
+        const freshGroupTabs = currentWindow.tabs
+            .filter(t => t.groupId === groupId)
+            .sort((a, b) => a.index - b.index);
+        const lastTab = freshGroupTabs[freshGroupTabs.length - 1];
+
+        if (lastTab && lastTab.id !== tabId) {
+            const draggedFreshTab = freshGroupTabs.find(t => t.id === tabId);
+            let index = lastTab.index + 1;
+            if (draggedFreshTab && draggedFreshTab.index < lastTab.index) index -= 1;
+            await chrome.tabs.move(tabId, { index });
+        }
+    } catch (e) {
+        console.error('executeDropOnGroup failed:', e);
+    }
 }
 
 async function executeGroupDrop(targetTabId, position) {
@@ -189,6 +209,7 @@ function renderTabRow(tab) {
 
     row.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         if (!lastDragTarget) return;
         const { targetTabId, position, groupId } = lastDragTarget;
         if (dragState?.type === 'group') {
@@ -285,6 +306,7 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
 
     header.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         section.classList.remove('drop-target');
         if (dragState?.type === 'group') {
             if (!lastDragTarget) return;
