@@ -55,10 +55,13 @@ function renderRow(tab) {
     return row;
 }
 
+const DEFAULT_MRU_LIMIT = 10;
+
 async function render() {
-    const [{ mruTabIds = [] }, allTabs] = await Promise.all([
+    const [{ mruTabIds = [] }, allTabs, { mruLimit = DEFAULT_MRU_LIMIT }] = await Promise.all([
         chrome.storage.session.get('mruTabIds'),
         chrome.tabs.query({}),
+        chrome.storage.sync.get('mruLimit'),
     ]);
 
     const tabById = Object.fromEntries(allTabs.map(t => [t.id, t]));
@@ -74,8 +77,8 @@ async function render() {
         }
     }
 
-    // MRU section (filter out stale IDs for tabs that no longer exist)
-    const mruTabs = mruTabIds.map(id => tabById[id]).filter(Boolean);
+    // MRU section (filter out stale IDs, then limit to configured count)
+    const mruTabs = mruTabIds.map(id => tabById[id]).filter(Boolean).slice(0, mruLimit);
 
     if (mruTabs.length === 0 && pinnedTabs.length === 0) {
         const empty = document.createElement('div');
