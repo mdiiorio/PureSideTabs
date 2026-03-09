@@ -463,7 +463,7 @@ function patchTab(tabId, changeInfo) {
 chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if ('groupId' in changeInfo || 'splitViewId' in changeInfo) {
+    if ('groupId' in changeInfo || 'splitViewId' in changeInfo || 'pinned' in changeInfo) {
         loadTabs();
     } else if ('title' in changeInfo || 'favIconUrl' in changeInfo) {
         patchTab(tabId, changeInfo);
