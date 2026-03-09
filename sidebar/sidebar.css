@@ -169,7 +169,7 @@ body {
   flex: 1;
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.06em;
   color: var(--group-color);
   overflow: hidden;
