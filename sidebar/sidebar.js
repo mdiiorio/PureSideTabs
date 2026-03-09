@@ -95,6 +95,7 @@ async function executeDropOnGroup(groupId) {
     }
 }
 
+
 async function executeGroupDrop(targetTabId, position) {
     const { groupId } = dragState;
     const groupTabs = allTabs
@@ -149,7 +150,7 @@ function renderTabRow(tab) {
         chrome.tabs.update(tab.id, { active: true });
     });
 
-    row.draggable = true;
+    row.draggable = splitPositions.get(tab.id) === undefined;
 
     row.addEventListener('dragstart', (e) => {
         dragState = { type: 'tab', tabId: tab.id, sourceGroupId: tab.groupId ?? -1 };
@@ -462,7 +463,7 @@ function patchTab(tabId, changeInfo) {
 chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if ('groupId' in changeInfo) {
+    if ('groupId' in changeInfo || 'splitViewId' in changeInfo) {
         loadTabs();
     } else if ('title' in changeInfo || 'favIconUrl' in changeInfo) {
         patchTab(tabId, changeInfo);
