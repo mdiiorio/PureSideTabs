@@ -10,6 +10,16 @@
 <body>
     <div id="tab-tree" class="tab-tree"></div>
     <div id="context-menu" class="context-menu"></div>
+    <div id="submenu" class="context-menu"></div>
+
+    <div id="group-dialog" class="group-dialog">
+        <input type="text" id="group-name-input" placeholder="Group name" maxlength="32" />
+        <div id="color-swatches" class="color-swatches"></div>
+        <div class="dialog-buttons">
+            <button id="group-cancel-btn" class="dialog-btn">Cancel</button>
+            <button id="group-create-btn" class="dialog-btn dialog-btn-primary">Create</button>
+        </div>
+    </div>
 
     <script src="../common.js"></script>
     <script src="sidebar.js"></script>

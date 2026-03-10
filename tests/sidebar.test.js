@@ -121,6 +121,93 @@ test('tab group collapses and hides tab rows', async ({ context, extensionId }) 
     await expect(sidebar.locator('.tab-group.collapsed')).toBeVisible();
 });
 
+test('add to group submenu appears on hover', async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    const row = sidebar.locator('.tab-row', { has: sidebar.locator('.tab-title', { hasText: 'Example Domain' }) });
+    await row.click({ button: 'right' });
+    await sidebar.locator('.context-menu-item.context-menu-submenu', { hasText: 'Add to group' }).hover();
+
+    await expect(sidebar.locator('#submenu.visible')).toBeVisible();
+    await expect(sidebar.locator('#submenu .context-menu-item', { hasText: 'New group' })).toBeVisible();
+});
+
+test('new group dialog opens and creates a group', async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    const row = sidebar.locator('.tab-row', { has: sidebar.locator('.tab-title', { hasText: 'Example Domain' }) });
+    await row.click({ button: 'right' });
+    await sidebar.locator('.context-menu-item.context-menu-submenu', { hasText: 'Add to group' }).hover();
+    await sidebar.locator('#submenu .context-menu-item', { hasText: 'New group' }).click();
+
+    await expect(sidebar.locator('#group-dialog.visible')).toBeVisible();
+
+    await sidebar.locator('#group-name-input').fill('My New Group');
+    await sidebar.locator('#group-create-btn').click();
+
+    await expect(sidebar.locator('#group-dialog.visible')).not.toBeVisible();
+    await expect(sidebar.locator('.group-name', { hasText: 'My New Group' })).toBeVisible();
+});
+
+test('new group dialog cancel closes without creating', async ({ context, extensionId }) => {
+    const page = await context.newPage();
+    await page.goto('https://example.com');
+
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    const row = sidebar.locator('.tab-row', { has: sidebar.locator('.tab-title', { hasText: 'Example Domain' }) });
+    await row.click({ button: 'right' });
+    await sidebar.locator('.context-menu-item.context-menu-submenu', { hasText: 'Add to group' }).hover();
+    await sidebar.locator('#submenu .context-menu-item', { hasText: 'New group' }).click();
+
+    await expect(sidebar.locator('#group-dialog.visible')).toBeVisible();
+    await sidebar.locator('#group-cancel-btn').click();
+
+    await expect(sidebar.locator('#group-dialog.visible')).not.toBeVisible();
+    await expect(sidebar.locator('.tab-group')).not.toBeVisible();
+});
+
+test('add to existing group from submenu', async ({ context, extensionId }) => {
+    const page1 = await context.newPage();
+    await page1.goto('https://example.com');
+    const page2 = await context.newPage();
+    await page2.goto('https://playwright.dev');
+
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    // Create a group containing only the playwright tab
+    await sidebar.evaluate(async () => {
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const target = tabs.find(t => t.url.includes('playwright.dev'));
+        const groupId = await chrome.tabs.group({ tabIds: [target.id] });
+        await chrome.tabGroups.update(groupId, { title: 'Existing Group', color: 'blue' });
+    });
+
+    await expect(sidebar.locator('.group-name', { hasText: 'Existing Group' })).toBeVisible();
+
+    // Add the example.com tab to that group via the submenu
+    const row = sidebar.locator('.tab-row', { has: sidebar.locator('.tab-title', { hasText: 'Example Domain' }) });
+    await row.click({ button: 'right' });
+    await sidebar.locator('.context-menu-item.context-menu-submenu', { hasText: 'Add to group' }).hover();
+    await expect(sidebar.locator('#submenu .context-menu-item', { hasText: 'Existing Group' })).toBeVisible();
+    await sidebar.locator('#submenu .context-menu-item', { hasText: 'Existing Group' }).click();
+
+    // Both tabs should now be inside the group
+    const group = sidebar.locator('.tab-group', { has: sidebar.locator('.group-name', { hasText: 'Existing Group' }) });
+    await expect(group.locator('.tab-title', { hasText: 'Example Domain' })).toBeVisible();
+    await expect(group.locator('.tab-title', { hasText: 'Playwright' })).toBeVisible();
+});
+
 test('sidebar loads and shows the current tab', async ({ context, extensionId }) => {
     // Open a real tab so there's something to display
     const page = await context.newPage();

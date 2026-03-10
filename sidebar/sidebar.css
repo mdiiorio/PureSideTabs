@@ -268,6 +268,9 @@ body {
 }
 
 .context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 3px 12px;
   font-size: 13px;
   color: var(--text);
@@ -281,6 +284,120 @@ body {
 .context-menu-item:hover {
   background: var(--accent);
   color: #fff;
+}
+
+.context-menu-submenu {
+  position: relative;
+  padding-right: 24px;
+}
+
+.context-menu-submenu::after {
+  content: '›';
+  position: absolute;
+  right: 10px;
+  font-size: 14px;
+}
+
+.context-menu-color-swatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Group dialog */
+.group-dialog {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  background: rgba(236, 236, 236, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  padding: 16px;
+  width: 280px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  z-index: 1002;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .group-dialog {
+    background: rgba(44, 44, 46, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.group-dialog.visible {
+  display: flex;
+}
+
+.group-dialog input[type="text"] {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.group-dialog input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
+.color-swatches {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.color-swatch.selected::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.dialog-btn {
+  padding: 3px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dialog-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
 }
 
 .context-menu-separator {

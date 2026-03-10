@@ -1,5 +1,11 @@
 const tabTree = document.getElementById('tab-tree');
 const contextMenu = document.getElementById('context-menu');
+const submenu = document.getElementById('submenu');
+const groupDialog = document.getElementById('group-dialog');
+const groupNameInput = document.getElementById('group-name-input');
+const groupCreateBtn = document.getElementById('group-create-btn');
+const groupCancelBtn = document.getElementById('group-cancel-btn');
+const colorSwatchesEl = document.getElementById('color-swatches');
 
 // --- State ---
 let allTabs = [];
@@ -31,10 +37,132 @@ const GROUP_COLORS = {
     orange: { color: '#fa7b17', bg: 'rgba(250, 123,  23, 0.12)' },
 };
 
+// --- Group dialog ---
+
+const CHROME_GROUP_COLORS = [
+    { key: 'grey',   hex: '#9aa0a6' },
+    { key: 'blue',   hex: '#4e8ef7' },
+    { key: 'red',    hex: '#e8453c' },
+    { key: 'yellow', hex: '#f9ab00' },
+    { key: 'green',  hex: '#34a853' },
+    { key: 'pink',   hex: '#e91e8c' },
+    { key: 'purple', hex: '#a142f4' },
+    { key: 'cyan',   hex: '#00acc1' },
+    { key: 'orange', hex: '#fa7b17' },
+];
+
+let groupDialogTabId = null;
+let selectedColor = 'grey';
+
+for (const { key, hex } of CHROME_GROUP_COLORS) {
+    const swatch = document.createElement('div');
+    swatch.className = 'color-swatch' + (key === 'grey' ? ' selected' : '');
+    swatch.dataset.color = key;
+    swatch.style.background = hex;
+    swatch.title = key;
+    swatch.addEventListener('click', () => {
+        selectedColor = key;
+        colorSwatchesEl.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.toggle('selected', s.dataset.color === key);
+        });
+    });
+    colorSwatchesEl.appendChild(swatch);
+}
+
+function showGroupDialog(tabId) {
+    groupDialogTabId = tabId;
+    selectedColor = 'grey';
+    groupNameInput.value = '';
+    colorSwatchesEl.querySelectorAll('.color-swatch').forEach(s => {
+        s.classList.toggle('selected', s.dataset.color === 'grey');
+    });
+    groupDialog.classList.add('visible');
+    groupNameInput.focus();
+}
+
+function hideGroupDialog() {
+    groupDialog.classList.remove('visible');
+    groupDialogTabId = null;
+}
+
+groupCreateBtn.addEventListener('click', async () => {
+    if (!groupDialogTabId) return;
+    const groupId = await chrome.tabs.group({ tabIds: [groupDialogTabId] });
+    await chrome.tabGroups.update(groupId, { title: groupNameInput.value, color: selectedColor });
+    hideGroupDialog();
+});
+
+groupCancelBtn.addEventListener('click', hideGroupDialog);
+
+groupNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') groupCreateBtn.click();
+    if (e.key === 'Escape') { e.stopPropagation(); hideGroupDialog(); }
+});
+
 // --- Context menu ---
+
+let submenuHideTimer = null;
+
+function hideSubmenu() {
+    submenu.classList.remove('visible');
+    clearTimeout(submenuHideTimer);
+    submenuHideTimer = null;
+}
+
+function showSubmenu(triggerEl, items) {
+    submenu.innerHTML = '';
+
+    for (const item of items) {
+        if (item.separator) {
+            const sep = document.createElement('div');
+            sep.className = 'context-menu-separator';
+            submenu.appendChild(sep);
+        } else {
+            const el = document.createElement('div');
+            el.className = 'context-menu-item';
+            if (item.color) {
+                const swatch = document.createElement('span');
+                swatch.className = 'context-menu-color-swatch';
+                swatch.style.background = item.color;
+                el.appendChild(swatch);
+            }
+            el.appendChild(document.createTextNode(item.label));
+            el.addEventListener('click', () => {
+                hideSubmenu();
+                hideContextMenu();
+                item.action();
+            });
+            submenu.appendChild(el);
+        }
+    }
+
+    submenu.classList.add('visible');
+    const triggerRect = triggerEl.getBoundingClientRect();
+    let left = triggerRect.right + 2;
+    let top = triggerRect.top;
+    submenu.style.left = `${left}px`;
+    submenu.style.top = `${top}px`;
+
+    const w = submenu.offsetWidth;
+    const h = submenu.offsetHeight;
+    if (left + w > window.innerWidth) left = triggerRect.left - w - 2;
+    if (top + h > window.innerHeight) top = window.innerHeight - h - 4;
+    submenu.style.left = `${Math.max(0, left)}px`;
+    submenu.style.top = `${Math.max(0, top)}px`;
+}
+
+submenu.addEventListener('mouseenter', () => {
+    clearTimeout(submenuHideTimer);
+    submenuHideTimer = null;
+});
+submenu.addEventListener('mouseleave', () => {
+    submenuHideTimer = setTimeout(hideSubmenu, 150);
+});
+submenu.addEventListener('contextmenu', (e) => e.preventDefault());
 
 function hideContextMenu() {
     contextMenu.classList.remove('visible');
+    hideSubmenu();
 }
 
 function showContextMenu(tabId, x, y) {
@@ -47,6 +175,7 @@ function showContextMenu(tabId, x, y) {
         const el = document.createElement('div');
         el.className = 'context-menu-item';
         el.textContent = label;
+        el.addEventListener('mouseenter', hideSubmenu);
         el.addEventListener('click', () => { hideContextMenu(); action(); });
         contextMenu.appendChild(el);
     };
@@ -54,6 +183,21 @@ function showContextMenu(tabId, x, y) {
     const addSeparator = () => {
         const el = document.createElement('div');
         el.className = 'context-menu-separator';
+        contextMenu.appendChild(el);
+    };
+
+    const addSubmenuItem = (label, buildItems) => {
+        const el = document.createElement('div');
+        el.className = 'context-menu-item context-menu-submenu';
+        el.textContent = label;
+        el.addEventListener('mouseenter', () => {
+            clearTimeout(submenuHideTimer);
+            submenuHideTimer = null;
+            showSubmenu(el, buildItems());
+        });
+        el.addEventListener('mouseleave', () => {
+            submenuHideTimer = setTimeout(hideSubmenu, 150);
+        });
         contextMenu.appendChild(el);
     };
 
@@ -67,6 +211,21 @@ function showContextMenu(tabId, x, y) {
         () => chrome.tabs.update(tab.id, { muted: !muted }));
     addSeparator();
     addItem('Move to new window', () => chrome.windows.create({ tabId: tab.id }));
+    addSubmenuItem('Add to group', () => {
+        const items = [{ label: 'New group…', action: () => showGroupDialog(tab.id) }];
+        const otherGroups = allGroups.filter(g => g.id !== tab.groupId);
+        if (otherGroups.length) {
+            items.push({ separator: true });
+            for (const g of otherGroups) {
+                items.push({
+                    label: g.title || 'Unnamed group',
+                    color: GROUP_COLORS[g.color]?.color ?? GROUP_COLORS.grey.color,
+                    action: () => chrome.tabs.group({ tabIds: [tab.id], groupId: g.id }),
+                });
+            }
+        }
+        return items;
+    });
     if (tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
         addItem('Remove from group', () => chrome.tabs.ungroup([tab.id]));
     }
@@ -85,15 +244,22 @@ function showContextMenu(tabId, x, y) {
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
 
-    // Adjust if the menu would overflow the viewport
     const w = contextMenu.offsetWidth;
     const h = contextMenu.offsetHeight;
     if (x + w > window.innerWidth)  contextMenu.style.left  = `${Math.max(0, window.innerWidth  - w - 4)}px`;
     if (y + h > window.innerHeight) contextMenu.style.top   = `${Math.max(0, window.innerHeight - h - 4)}px`;
 }
 
-document.addEventListener('click', hideContextMenu);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideContextMenu(); });
+document.addEventListener('click', (e) => {
+    if (!groupDialog.contains(e.target)) hideContextMenu();
+    if (groupDialog.classList.contains('visible') &&
+        !groupDialog.contains(e.target) &&
+        !contextMenu.contains(e.target) &&
+        !submenu.contains(e.target)) {
+        hideGroupDialog();
+    }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { hideContextMenu(); hideGroupDialog(); } });
 contextMenu.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // --- Helpers ---
