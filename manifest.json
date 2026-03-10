@@ -12,10 +12,17 @@
   "commands": {
     "toggle-sidebar": {
       "suggested_key": {
-        "default": "Alt+Shift+S",
-        "mac": "Alt+Shift+S"
+        "default": "Ctrl+B",
+        "mac": "Command+B"
       },
       "description": "Show/hide the tab sidebar"
+    },
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+E",
+        "mac": "Command+E"
+      },
+      "description": "Activate PureSideTabs"
     }
   },
   "background": {
