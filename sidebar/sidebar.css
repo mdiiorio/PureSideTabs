@@ -235,6 +235,60 @@ body {
   pointer-events: none;
 }
 
+/* Context menu */
+.context-menu {
+  position: fixed;
+  background: rgba(236, 236, 236, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 0.5px solid rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 200px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .context-menu {
+    background: rgba(44, 44, 46, 0.92);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.context-menu.visible {
+  display: block;
+}
+
+.context-menu-item {
+  padding: 3px 12px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.context-menu-item:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 3px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .context-menu-separator {
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
 /* Empty state */
 .empty-state {
   display: flex;

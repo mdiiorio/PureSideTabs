@@ -1,4 +1,5 @@
 const tabTree = document.getElementById('tab-tree');
+const contextMenu = document.getElementById('context-menu');
 
 // --- State ---
 let allTabs = [];
@@ -27,6 +28,70 @@ const GROUP_COLORS = {
     cyan:   { color: '#00acc1', bg: 'rgba(  0, 172, 193, 0.12)' },
     orange: { color: '#fa7b17', bg: 'rgba(250, 123,  23, 0.12)' },
 };
+
+// --- Context menu ---
+
+function hideContextMenu() {
+    contextMenu.classList.remove('visible');
+}
+
+function showContextMenu(tabId, x, y) {
+    const tab = allTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    contextMenu.innerHTML = '';
+
+    const addItem = (label, action) => {
+        const el = document.createElement('div');
+        el.className = 'context-menu-item';
+        el.textContent = label;
+        el.addEventListener('click', () => { hideContextMenu(); action(); });
+        contextMenu.appendChild(el);
+    };
+
+    const addSeparator = () => {
+        const el = document.createElement('div');
+        el.className = 'context-menu-separator';
+        contextMenu.appendChild(el);
+    };
+
+    addItem('Reload', () => chrome.tabs.reload(tab.id));
+    addItem('Duplicate', () => chrome.tabs.duplicate(tab.id));
+    addSeparator();
+    addItem(tab.pinned ? 'Unpin tab' : 'Pin tab',
+        () => chrome.tabs.update(tab.id, { pinned: !tab.pinned }));
+    addItem(tab.mutedInfo?.muted ? 'Unmute tab' : 'Mute tab',
+        () => chrome.tabs.update(tab.id, { muted: !tab.mutedInfo?.muted }));
+    addSeparator();
+    addItem('Move to new window', () => chrome.windows.create({ tabId: tab.id }));
+    if (tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+        addItem('Remove from group', () => chrome.tabs.ungroup([tab.id]));
+    }
+    addSeparator();
+    addItem('Close tab', () => chrome.tabs.remove(tab.id));
+    const otherIds = allTabs.filter(t => t.id !== tab.id).map(t => t.id);
+    if (otherIds.length) {
+        addItem('Close other tabs', () => chrome.tabs.remove(otherIds));
+    }
+    const belowIds = allTabs.filter(t => t.index > tab.index).map(t => t.id);
+    if (belowIds.length) {
+        addItem('Close all tabs below', () => chrome.tabs.remove(belowIds));
+    }
+
+    contextMenu.classList.add('visible');
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+
+    // Adjust if the menu would overflow the viewport
+    const w = contextMenu.offsetWidth;
+    const h = contextMenu.offsetHeight;
+    if (x + w > window.innerWidth)  contextMenu.style.left  = `${Math.max(0, window.innerWidth  - w - 4)}px`;
+    if (y + h > window.innerHeight) contextMenu.style.top   = `${Math.max(0, window.innerHeight - h - 4)}px`;
+}
+
+document.addEventListener('click', hideContextMenu);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideContextMenu(); });
+contextMenu.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // --- Drag and drop logic ---
 
@@ -148,6 +213,11 @@ function renderTabRow(tab) {
 
     row.addEventListener('click', () => {
         chrome.tabs.update(tab.id, { active: true });
+    });
+
+    row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(tab.id, e.clientX, e.clientY);
     });
 
     row.draggable = splitPositions.get(tab.id) === undefined;
