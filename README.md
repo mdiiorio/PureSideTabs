@@ -26,13 +26,17 @@ No other permissions are requested. The extension cannot access page content, ma
 - Vertical list of all open tabs in the current window
 - Tab groups shown with color-coded headers, matching Chrome's built-in group colors
 - Collapse and expand tab groups by clicking the group header
-- Search/filter tabs by title or URL (collapsed groups expand automatically when searching)
 - Click any tab to switch to it
 - Close tabs with the × button
+- Right-click any tab for a context menu: reload, duplicate, pin/unpin, mute/unmute, move to new window, remove from group, close, close other tabs, close all tabs below
+- Speaker icon on tabs that are playing audio
+- Visual bracket indicator for tabs open in split view
+- Pinned tabs shown at the top, separated from regular tabs
 - Toolbar popup showing pinned tabs and recently used tabs, with keyboard navigation (↑/↓ or j/k, Enter to switch)
-- Keyboard shortcut **Alt+Shift+S** to show/hide the sidebar
+- Keyboard shortcut **Ctrl+B** (Cmd+B on Mac) to show/hide the sidebar
+- Keyboard shortcut **Ctrl+E** (Cmd+E on Mac) to activate the extension
 - Drag and drop to reorder tabs and tab groups; drop a tab onto a group header to add it to the group
-- Automatically updates as tabs open, close, move, or change
+- Automatically updates as tabs open, close, move, pin, or change
 - Respects your system light/dark mode preference
 
 ## Settings
@@ -46,5 +50,6 @@ Access settings via right-click on the extension icon → **Options**, or throug
 
 ## Installation
 
-- If you're using the popup menu, make sure the extension is pinned.
-- Set keyboard shortcuts.
+- Load the extension in Chrome via `chrome://extensions` → **Load unpacked**, pointing to this directory.
+- Pin the extension to the toolbar for easy access to the popup.
+- Keyboard shortcuts can be customized at `chrome://extensions/shortcuts`.
