@@ -187,6 +187,14 @@ async function executeGroupDrop(targetTabId, position) {
 
 // --- Render ---
 
+function createAudioIcon() {
+    const el = document.createElement('span');
+    el.className = 'tab-audio';
+    el.title = 'Playing audio';
+    el.textContent = '🔊';
+    return el;
+}
+
 function renderTabRow(tab) {
     const row = document.createElement('div');
     const splitPos = splitPositions.get(tab.id);
@@ -200,6 +208,8 @@ function renderTabRow(tab) {
     title.textContent = tab.title || tab.url || '(New Tab)';
     title.title = tab.title || tab.url || '';
     row.appendChild(title);
+
+    if (tab.audible) row.appendChild(createAudioIcon());
 
     const closeBtn = document.createElement('span');
     closeBtn.className = 'tab-close';
@@ -526,6 +536,15 @@ function patchTab(tabId, changeInfo) {
         const updatedTab = allTabs.find(t => t.id === tabId);
         if (img && updatedTab) img.replaceWith(renderFavicon(updatedTab));
     }
+
+    if ('audible' in changeInfo) {
+        const audioEl = row.querySelector('.tab-audio');
+        if (changeInfo.audible && !audioEl) {
+            row.insertBefore(createAudioIcon(), row.querySelector('.tab-close'));
+        } else if (!changeInfo.audible && audioEl) {
+            audioEl.remove();
+        }
+    }
 }
 
 // --- Event listeners ---
@@ -535,7 +554,7 @@ chrome.tabs.onRemoved.addListener(loadTabs);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if ('groupId' in changeInfo || 'splitViewId' in changeInfo || 'pinned' in changeInfo) {
         loadTabs();
-    } else if ('title' in changeInfo || 'favIconUrl' in changeInfo) {
+    } else if ('title' in changeInfo || 'favIconUrl' in changeInfo || 'audible' in changeInfo) {
         patchTab(tabId, changeInfo);
     }
 });

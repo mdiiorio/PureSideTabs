@@ -123,6 +123,12 @@ body {
   color: var(--accent-hover);
 }
 
+.tab-audio {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
 .tab-close {
   flex-shrink: 0;
   width: 14px;
