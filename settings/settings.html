@@ -12,12 +12,18 @@
         <h1>PureSideTabs Settings</h1>
 
         <div class="setting-row">
-            <label for="mru-limit">Recent tabs to show in popup</label>
+            <div class="setting-text">
+                <label for="mru-limit">Number of recent tabs to show in popup</label>
+                <p class="setting-description">Controls how many recently visited tabs appear in the popup menu.</p>
+            </div>
             <input type="number" id="mru-limit" min="1" max="10" />
         </div>
 
         <div class="setting-row">
-            <label for="new-tab-in-group">Open new tabs inside current group</label>
+            <div class="setting-text">
+                <label for="new-tab-in-group">Open new tabs inside current group</label>
+                <p class="setting-description">When enabled, opening a new tab while viewing a tab contained by a tab group causes the new tab to open at the end of that group instead of at the end of the window.</p>
+            </div>
             <input type="checkbox" id="new-tab-in-group" />
         </div>
     </div>

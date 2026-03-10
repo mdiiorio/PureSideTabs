@@ -22,15 +22,34 @@ h1 {
 
 .setting-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
-    padding: 12px 0;
+    gap: 24px;
+    padding: 16px 0;
     border-bottom: 1px solid var(--border);
+}
+
+.setting-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .setting-row label {
     color: var(--text);
+    font-weight: 500;
+}
+
+.setting-description {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 340px;
+}
+
+.setting-row input[type="number"],
+.setting-row input[type="checkbox"] {
+    margin-top: 2px;
 }
 
 .setting-row input[type="number"] {
