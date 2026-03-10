@@ -26,7 +26,14 @@ chrome.commands.onCommand.addListener((command, tab) => {
 
 const MAX_MRU = 10;
 
-async function pushMru(tabId, windowId) {
+// Serialize pushMru calls to prevent read-modify-write races on rapid tab switching
+let pushMruQueue = Promise.resolve();
+
+function pushMru(tabId, windowId) {
+    pushMruQueue = pushMruQueue.then(() => _pushMru(tabId, windowId));
+}
+
+async function _pushMru(tabId, windowId) {
     const key = `mru_${windowId}`;
     const { [key]: mruTabIds = [] } = await chrome.storage.session.get(key);
     const updated = [tabId, ...mruTabIds.filter(id => id !== tabId)].slice(0, MAX_MRU);
@@ -82,6 +89,13 @@ async function restoreMru() {
             if (isUserUrl(url)) tabByUrl.set(url, tab.id);
         }
         if (tabByUrl.size === 0) continue;
+
+        // Skip windows that already have live session MRU data — this means the
+        // service worker restarted mid-session (session storage persists across SW
+        // restarts), so there's nothing to restore and we must not overwrite.
+        const sessionKey = `mru_${win.id}`;
+        const { [sessionKey]: existingMru } = await chrome.storage.session.get(sessionKey);
+        if (existingMru && existingMru.length > 0) continue;
 
         let bestToken = null;
         let bestScore = 0;
