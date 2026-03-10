@@ -24,3 +24,21 @@
 - Drop events on rows and headers call `e.stopPropagation()` to prevent the `tabTree` fallback handler from also firing and running the drop logic twice.
 - `dragLocked = true` during a drag to suppress `loadTabs()` re-renders. Cleared in `dragend` after the drop promise resolves.
 - Hovering over a collapsed group for 1s during a tab drag expands it. On expansion, `allGroups` is updated in memory and `render()` is called directly (bypassing `loadTabs()`).
+
+### Split view tabs
+
+- Tabs in a split view share a `splitViewId`. Non-split tabs have `splitViewId === chrome.tabs.SPLIT_VIEW_ID_NONE`.
+- Split view tabs are non-draggable (`row.draggable = false`) because there is no API to move them together atomically.
+- A bracket indicator (`::before` with CSS borders) is rendered on the left edge of split tab rows — a rounded corner cap at the midpoint of the first and last tab, connected by a vertical line.
+
+## Tab updates
+
+### Patch updates vs. full reload
+
+- `chrome.tabs.onUpdated` fires for many properties. Structural changes (`groupId`, `splitViewId`, `pinned`) trigger a full `loadTabs()` re-render. Visual-only changes (`title`, `favIconUrl`, `audible`) go through `patchTab()` which mutates only the affected DOM nodes in place, avoiding unnecessary re-renders.
+- `chrome.tabs.onActivated` is handled separately with a direct DOM class swap — no re-render needed.
+
+## Context menu
+
+- The sidebar is an extension page, so `chrome.contextMenus` (which targets content pages in the main tab) cannot add items to right-clicks within it.
+- Instead, the default `contextmenu` event is suppressed on tab rows and a custom menu is rendered as a fixed-position `<div>`, styled to match macOS native menus (frosted glass background, inset item highlight, `cursor: default`).
