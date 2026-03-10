@@ -1,5 +1,32 @@
 # Implementation Notes
 
+## Architecture
+
+```mermaid
+flowchart LR
+    USER([User])
+
+    USER -->|activates tab| OA[onActivated]
+    OA --> BG[background.js]
+    BG -->|write MRU tab IDs| SS[(session storage mru_windowId)]
+    BG -->|write URL snapshot| LS[(local storage persistedMru)]
+
+    SW([SW restart]) -->|read URL snapshot| LS
+    LS -->|restore tab IDs| SS
+
+    USER -->|opens popup| POPUP[popup.js]
+    SS -->|read MRU tab IDs| POPUP
+    POPUP -->|tabs.query| POPUP
+
+    USER -->|opens sidebar| SIDEBAR[sidebar.js]
+    SIDEBAR -->|windows.getCurrent\ntabGroups.query| SIDEBAR
+    SIDEBAR -->|onCreated / onRemoved\nonUpdated / onMoved\nonActivated| SIDEBAR
+
+    USER -->|changes setting| SETTINGS[settings.js]
+    SETTINGS -->|write| SYNC[(sync storage settings)]
+    SYNC -->|read on new tab| BG
+```
+
 ## Drag and drop
 
 ### Tab dragging
