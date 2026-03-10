@@ -1,10 +1,10 @@
 # PureSideTabs
 
-A Chrome extension that lists your open tabs in a vertical sidebar. Nothing more, nothing less.
+A Chrome extension that lists your open tabs in a vertical sidebar.
 
 ## Why trust this extension?
 
-Most tab manager extensions request broad permissions, bundle megabytes of third-party code, and phone home to remote servers. PureSideTabs does none of that.
+Look at the source!
 
 **Permissions requested — and why:**
 
@@ -47,9 +47,3 @@ Access settings via right-click on the extension icon → **Options**, or throug
 |---------|---------|-------------|
 | Recent tabs to show in popup | 10 | How many recently used tabs appear in the toolbar popup |
 | Open new tabs inside current group | Off | When enabled, pressing Ctrl+T while on a grouped tab opens the new tab at the end of that group instead of at the end of the window |
-
-## Installation
-
-- Load the extension in Chrome via `chrome://extensions` → **Load unpacked**, pointing to this directory.
-- Pin the extension to the toolbar for easy access to the popup.
-- Keyboard shortcuts can be customized at `chrome://extensions/shortcuts`.
