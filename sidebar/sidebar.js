@@ -6,6 +6,8 @@ let allTabs = [];
 let allGroups = [];
 let splitPositions = new Map(); // tabId -> 'first' | 'middle' | 'last'
 
+const HOVER_EXPAND_DELAY_MS = 1000;
+
 // --- Drag and drop state ---
 let dragState = null;       // { tabId, sourceGroupId }
 let dragLocked = false;     // suppresses loadTabs() while a drag is in flight
@@ -60,8 +62,9 @@ function showContextMenu(tabId, x, y) {
     addSeparator();
     addItem(tab.pinned ? 'Unpin tab' : 'Pin tab',
         () => chrome.tabs.update(tab.id, { pinned: !tab.pinned }));
-    addItem(tab.mutedInfo?.muted ? 'Unmute tab' : 'Mute tab',
-        () => chrome.tabs.update(tab.id, { muted: !tab.mutedInfo?.muted }));
+    const muted = tab.mutedInfo?.muted ?? false;
+    addItem(muted ? 'Unmute tab' : 'Mute tab',
+        () => chrome.tabs.update(tab.id, { muted: !muted }));
     addSeparator();
     addItem('Move to new window', () => chrome.windows.create({ tabId: tab.id }));
     if (tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
@@ -92,6 +95,12 @@ function showContextMenu(tabId, x, y) {
 document.addEventListener('click', hideContextMenu);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideContextMenu(); });
 contextMenu.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// --- Helpers ---
+
+function getGroupTabsSorted(groupId) {
+    return allTabs.filter(t => t.groupId === groupId).sort((a, b) => a.index - b.index);
+}
 
 // --- Drag and drop logic ---
 
@@ -163,9 +172,7 @@ async function executeDropOnGroup(groupId) {
 
 async function executeGroupDrop(targetTabId, position) {
     const { groupId } = dragState;
-    const groupTabs = allTabs
-        .filter(t => t.groupId === groupId)
-        .sort((a, b) => a.index - b.index);
+    const groupTabs = getGroupTabsSorted(groupId);
     if (!groupTabs.length) return;
 
     const targetTab = allTabs.find(t => t.id === targetTabId);
@@ -266,9 +273,7 @@ function renderTabRow(tab) {
             if (groupSection) {
                 // Snap indicator to the boundary of the hovered group, not between individual rows
                 const pos = getDropPosition(e, groupSection);
-                const groupTabsSorted = allTabs
-                    .filter(t => t.groupId === parseInt(groupSection.dataset.groupId))
-                    .sort((a, b) => a.index - b.index);
+                const groupTabsSorted = getGroupTabsSorted(parseInt(groupSection.dataset.groupId));
                 if (!groupTabsSorted.length) return;
                 const targetTabId = pos === 'before'
                     ? groupTabsSorted[0].id
@@ -352,9 +357,7 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
         if (dragState?.type === 'group') {
             if (dragState.groupId === group.id) return; // skip own header
             const pos = getDropPosition(e, section);
-            const groupTabsSorted = allTabs
-                .filter(t => t.groupId === group.id)
-                .sort((a, b) => a.index - b.index);
+            const groupTabsSorted = getGroupTabsSorted(group.id);
             if (!groupTabsSorted.length) return;
             const targetTabId = pos === 'before'
                 ? groupTabsSorted[0].id
@@ -374,7 +377,7 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
                     const g = allGroups.find(ag => ag.id === group.id);
                     if (g) g.collapsed = false;
                     render();
-                }, 1000);
+                }, HOVER_EXPAND_DELAY_MS);
             }
         }
     });
@@ -427,8 +430,9 @@ function render() {
     // Build split view position map
     splitPositions.clear();
     const splitGroups = new Map();
+    const SPLIT_VIEW_ID_NONE = chrome.tabs.SPLIT_VIEW_ID_NONE ?? -1;
     for (const tab of allTabs) {
-        if (tab.splitViewId !== chrome.tabs.SPLIT_VIEW_ID_NONE) {
+        if (tab.splitViewId !== SPLIT_VIEW_ID_NONE) {
             if (!splitGroups.has(tab.splitViewId)) splitGroups.set(tab.splitViewId, []);
             splitGroups.get(tab.splitViewId).push(tab.id);
         }
@@ -482,6 +486,14 @@ function render() {
                 tabTree.appendChild(renderTabRow(tab));
             }
         }
+    }
+
+    if (!tabTree.hasChildNodes()) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = 'No tabs open.';
+        tabTree.appendChild(empty);
+        return;
     }
 
     tabTree.querySelector('.tab-row.active')?.scrollIntoView({ block: 'nearest' });
