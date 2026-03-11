@@ -51,8 +51,8 @@ const CHROME_GROUP_COLORS = [
     { key: 'orange', hex: '#fa7b17' },
 ];
 
-let groupDialogTabId = null;
 let selectedColor = 'grey';
+let groupDialogOnConfirm = null;
 
 for (const { key, hex } of CHROME_GROUP_COLORS) {
     const swatch = document.createElement('div');
@@ -69,27 +69,49 @@ for (const { key, hex } of CHROME_GROUP_COLORS) {
     colorSwatchesEl.appendChild(swatch);
 }
 
-function showGroupDialog(tabId) {
-    groupDialogTabId = tabId;
-    selectedColor = 'grey';
-    groupNameInput.value = '';
+function openGroupDialog({ name = '', color = 'grey', confirmLabel = 'Create', onConfirm }) {
+    groupDialogOnConfirm = onConfirm;
+    selectedColor = color;
+    groupNameInput.value = name;
+    groupCreateBtn.textContent = confirmLabel;
     colorSwatchesEl.querySelectorAll('.color-swatch').forEach(s => {
-        s.classList.toggle('selected', s.dataset.color === 'grey');
+        s.classList.toggle('selected', s.dataset.color === color);
     });
     groupDialog.classList.add('visible');
     groupNameInput.focus();
+    groupNameInput.select();
+}
+
+function showGroupDialog(tabId) {
+    openGroupDialog({
+        onConfirm: async (name, color) => {
+            const groupId = await chrome.tabs.group({ tabIds: [tabId] });
+            await chrome.tabGroups.update(groupId, { title: name, color });
+        },
+    });
+}
+
+function showGroupEditDialog(group) {
+    openGroupDialog({
+        name: group.title || '',
+        color: group.color || 'grey',
+        confirmLabel: 'Save',
+        onConfirm: async (name, color) => {
+            await chrome.tabGroups.update(group.id, { title: name, color });
+        }
+    });
 }
 
 function hideGroupDialog() {
     groupDialog.classList.remove('visible');
-    groupDialogTabId = null;
+    groupDialogOnConfirm = null;
 }
 
 groupCreateBtn.addEventListener('click', async () => {
-    if (!groupDialogTabId) return;
-    const groupId = await chrome.tabs.group({ tabIds: [groupDialogTabId] });
-    await chrome.tabGroups.update(groupId, { title: groupNameInput.value, color: selectedColor });
+    if (!groupDialogOnConfirm) return;
+    const cb = groupDialogOnConfirm;
     hideGroupDialog();
+    await cb(groupNameInput.value, selectedColor);
 });
 
 groupCancelBtn.addEventListener('click', hideGroupDialog);
@@ -163,6 +185,26 @@ submenu.addEventListener('contextmenu', (e) => e.preventDefault());
 function hideContextMenu() {
     contextMenu.classList.remove('visible');
     hideSubmenu();
+}
+
+function showGroupContextMenu(group, x, y) {
+    contextMenu.innerHTML = '';
+    hideSubmenu();
+
+    const el = document.createElement('div');
+    el.className = 'context-menu-item';
+    el.textContent = 'Edit group';
+    el.addEventListener('click', () => { hideContextMenu(); showGroupEditDialog(group); });
+    contextMenu.appendChild(el);
+
+    contextMenu.classList.add('visible');
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+
+    const w = contextMenu.offsetWidth;
+    const h = contextMenu.offsetHeight;
+    if (x + w > window.innerWidth)  contextMenu.style.left  = `${Math.max(0, window.innerWidth  - w - 4)}px`;
+    if (y + h > window.innerHeight) contextMenu.style.top   = `${Math.max(0, window.innerHeight - h - 4)}px`;
 }
 
 function showContextMenu(tabId, x, y) {
@@ -493,6 +535,11 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
         chrome.tabGroups.update(group.id, { collapsed: !group.collapsed })
             .then(loadTabs)
             .catch(console.error);
+    });
+
+    header.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showGroupContextMenu(group, e.clientX, e.clientY);
     });
 
     header.draggable = true;
