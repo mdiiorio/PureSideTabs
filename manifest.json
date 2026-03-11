@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PureSideTabs",
-  "version": "0.1.0",
-  "description": "View and manage your open tabs in a sidebar tree view.",
+  "version": "1.0.0",
+  "description": "View and manage your open tabs and tab groups in a sidebar.",
   "permissions": [
     "tabs",
     "tabGroups",

@@ -2,7 +2,7 @@
 set -e
 
 VERSION=$(node -p "require('./manifest.json').version")
-OUT="puresitetabs-${VERSION}.zip"
+OUT="puresidetabs-${VERSION}.zip"
 
 zip -r "$OUT" \
     manifest.json \
