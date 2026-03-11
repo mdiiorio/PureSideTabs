@@ -171,11 +171,13 @@ chrome.tabs.onCreated.addListener(async (tab) => {
     await chrome.tabs.group({ tabIds: [tab.id], groupId: prevTab.groupId });
 });
 
-chrome.tabs.onRemoved.addListener(async (tabId, { windowId, isWindowClosing }) => {
+chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
     if (isWindowClosing) return; // window cleanup handles this
-    const key = `mru_${windowId}`;
-    const { [key]: mruTabIds = [] } = await chrome.storage.session.get(key);
-    await chrome.storage.session.set({ [key]: mruTabIds.filter(id => id !== tabId) });
+    pushMruQueue = pushMruQueue.then(async () => {
+        const key = `mru_${windowId}`;
+        const { [key]: mruTabIds = [] } = await chrome.storage.session.get(key);
+        await chrome.storage.session.set({ [key]: mruTabIds.filter(id => id !== tabId) });
+    });
 });
 
 chrome.windows.onRemoved.addListener(async (windowId) => {
