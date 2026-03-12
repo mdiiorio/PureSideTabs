@@ -197,6 +197,20 @@ function showGroupContextMenu(group, x, y) {
     el.addEventListener('click', () => { hideContextMenu(); showGroupEditDialog(group); });
     contextMenu.appendChild(el);
 
+    const sep = document.createElement('div');
+    sep.className = 'context-menu-separator';
+    contextMenu.appendChild(sep);
+
+    const closeEl = document.createElement('div');
+    closeEl.className = 'context-menu-item';
+    closeEl.textContent = 'Close group';
+    closeEl.addEventListener('click', () => {
+        hideContextMenu();
+        const groupTabs = getGroupTabsSorted(group.id);
+        if (groupTabs.length) chrome.tabs.remove(groupTabs.map(t => t.id));
+    });
+    contextMenu.appendChild(closeEl);
+
     contextMenu.classList.add('visible');
     contextMenu.style.left = `${x}px`;
     contextMenu.style.top = `${y}px`;
