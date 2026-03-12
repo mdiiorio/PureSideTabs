@@ -1,6 +1,6 @@
 # Overview
 
-Shows your open tabs and tab groups in a sidebarn. No data harvesting -- the source is available and easily verifiable. YOUR DATA IS SAFE.
+Shows your open tabs and tab groups in a sidebar. No data harvesting -- the source is available and easily verifiable. YOUR DATA IS SAFE.
 
 Features
 • Show tabs and tab groups in a sidebar

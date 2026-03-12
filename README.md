@@ -1,4 +1,4 @@
-# PureSideTabs
+# Pure Side Tabs
 
 A Chrome extension that lists your open tabs in a vertical sidebar.
 
