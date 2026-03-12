@@ -1,4 +1,4 @@
-# Overview
+Overview
 
 Shows your open tabs and tab groups in a sidebar. No data harvesting -- the source is available and easily verifiable. YOUR DATA IS SAFE.
 
