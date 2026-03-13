@@ -11,7 +11,7 @@
 
 1. Install from the Chrome Web Store
 2. Ctrl-B (Command-B on Mac) to show sidebar
-3. Ctrl-E (Command-E on Mac) to show popup menu, arrow keys or j/k to navigate, enter to switch
+3. Ctrl-E (Command-E on Mac) to show popup menu, arrow keys or j/k to navigate, enter to switch, esc to dismiss
 4. Configure shortcuts to change keyboard mappings (Window > Extensions > Keyboard shortcuts)
 5. Configure settings in extension options
 
