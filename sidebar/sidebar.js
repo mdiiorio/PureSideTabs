@@ -551,6 +551,7 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
     header.addEventListener('click', () => {
         if (group.collapsed) pendingScrollGroupId = group.id;
         chrome.tabGroups.update(group.id, { collapsed: !group.collapsed })
+            .then(loadTabs)
             .catch(console.error);
     });
 
