@@ -14,6 +14,9 @@ let splitPositions = new Map(); // tabId -> 'first' | 'middle' | 'last'
 
 const HOVER_EXPAND_DELAY_MS = 1000;
 
+// --- Scroll state ---
+let pendingScrollGroupId = null; // group to scroll into view after expand
+
 // --- Drag and drop state ---
 let dragState = null;       // { tabId, sourceGroupId }
 let dragLocked = false;     // suppresses loadTabs() while a drag is in flight
@@ -546,8 +549,8 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
     const header = document.createElement('div');
     header.className = 'tab-group-header';
     header.addEventListener('click', () => {
+        if (group.collapsed) pendingScrollGroupId = group.id;
         chrome.tabGroups.update(group.id, { collapsed: !group.collapsed })
-            .then(loadTabs)
             .catch(console.error);
     });
 
@@ -723,7 +726,20 @@ function render() {
         return;
     }
 
-    tabTree.querySelector('.tab-row.active')?.scrollIntoView({ block: 'nearest' });
+    if (pendingScrollGroupId !== null) {
+        const groupId = pendingScrollGroupId;
+        pendingScrollGroupId = null;
+        const groupEl = tabTree.querySelector(`[data-group-id="${groupId}"]`);
+        if (groupEl) {
+            const ROW_HEIGHT = 28;
+            const headerTop = groupEl.offsetTop;
+            const viewTop = tabTree.scrollTop;
+            const viewBottom = tabTree.scrollTop + tabTree.clientHeight;
+            if (headerTop < viewTop || headerTop >= viewBottom) {
+                tabTree.scrollTop = Math.max(0, headerTop - ROW_HEIGHT);
+            }
+        }
+    }
 }
 
 // Fallback handlers on the container so drops in gaps between rows still land
@@ -800,7 +816,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 chrome.tabs.onActivated.addListener(({ tabId }) => {
     allTabs.forEach(t => { t.active = t.id === tabId; });
     tabTree.querySelector('.tab-row.active')?.classList.remove('active');
-    tabTree.querySelector(`[data-tab-id="${tabId}"]`)?.classList.add('active');
+    const newActiveRow = tabTree.querySelector(`[data-tab-id="${tabId}"]`);
+    newActiveRow?.classList.add('active');
+    newActiveRow?.scrollIntoView({ block: 'nearest' });
 });
 chrome.tabs.onMoved.addListener(loadTabs);
 chrome.tabGroups.onCreated.addListener(loadTabs);
