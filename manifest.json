@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Pure Side Tabs",
   "version": "1.0.0",
-  "description": "View and manage your open tabs and tab groups in a sidebar.",
+  "description": "Safely view and manage your open tabs and tab groups in a sidebar. Fully open-source, with zero dependencies and no data collection.",
   "permissions": [
     "tabs",
     "tabGroups",
