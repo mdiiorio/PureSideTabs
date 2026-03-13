@@ -2,22 +2,9 @@
 
 A Chrome extension that lists your open tabs in a vertical sidebar.
 
-## Why trust this extension?
+![Screenshot of sidebar UI](listing/big.png)
 
-Look at the source!
-
-**Permissions requested — and why:**
-
-| Permission | Why it's needed |
-|------------|-----------------|
-| `tabs` | Read tab titles, URLs, and favicons to display them; switch to or close a tab when you click |
-| `tabGroups` | Read tab group names and colors to render grouped tabs in the sidebar |
-| `sidePanel` | Open the sidebar panel in Chrome |
-| `storage` | Remember recently used tab order across tab activations (session storage only); persist settings (sync storage) |
-
-No other permissions are requested. The extension cannot access page content, make network requests, read cookies, manage history, or interact with any website.
-
-**Zero dependencies.** No npm packages. No bundler. No external scripts or CDN resources. The code that runs is exactly the code you see in this repository — no build step, no minification, no obfuscation.
+**Zero dependencies.** No npm packages. No bundler. No external scripts or CDN resources. The code that runs is exactly the code you see in this repository.
 
 **No data leaves your browser.** The extension makes no network requests. Your tab titles and URLs are displayed locally and never sent anywhere.
 
