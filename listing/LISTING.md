@@ -7,7 +7,7 @@
 • Recent tab view allows for a Ctrl-Tab-like experience.
 • Drag-and-drop tabs and tab groups for arrangement
 
-⌨️ Usage
+⌨️  Usage
 
 1. Install from the Chrome Web Store
 2. Ctrl-B (Command-B on Mac) to show sidebar
@@ -18,4 +18,5 @@
 📣 Tips
 
 • You can pin the extension (from the sidebar's title, the Extensions toolbar, or from the extension's details) to make the recent tab popup show faster.
-• You can use the popup menu to easily switch back and forth between two tabs (Ctrl-Tab replacement): show the popup menu (Ctrl/Command-B by default), then press Enter. This will switch back and forth between the two most recently-viewed tabs.
+• You can use the popup menu to easily switch back and forth between two tabs (Ctrl-Tab replacement): show the popup menu (Ctrl/Command-E by default), then press Enter. This will switch back and forth between the two most recently-viewed tabs.
+• Holding Ctrl/Command while collapsing or expanding tab groups will apply the command to all tab groups in the window.
