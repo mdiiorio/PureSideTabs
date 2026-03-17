@@ -16,6 +16,7 @@ const HOVER_EXPAND_DELAY_MS = 1000;
 
 // --- Scroll state ---
 let pendingScrollGroupId = null; // group to scroll into view after expand
+let pendingScrollTabId = null;   // active tab to scroll into view after next render (row not yet in DOM)
 
 // --- Drag and drop state ---
 let dragState = null;       // { tabId, sourceGroupId }
@@ -748,6 +749,12 @@ function render() {
             }
         }
     }
+
+    if (pendingScrollTabId !== null) {
+        const tabId = pendingScrollTabId;
+        pendingScrollTabId = null;
+        tabTree.querySelector(`[data-tab-id="${tabId}"]`)?.scrollIntoView({ block: 'nearest' });
+    }
 }
 
 // Fallback handlers on the container so drops in gaps between rows still land
@@ -825,8 +832,12 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
     allTabs.forEach(t => { t.active = t.id === tabId; });
     tabTree.querySelector('.tab-row.active')?.classList.remove('active');
     const newActiveRow = tabTree.querySelector(`[data-tab-id="${tabId}"]`);
-    newActiveRow?.classList.add('active');
-    newActiveRow?.scrollIntoView({ block: 'nearest' });
+    if (newActiveRow) {
+        newActiveRow.classList.add('active');
+        newActiveRow.scrollIntoView({ block: 'nearest' });
+    } else {
+        pendingScrollTabId = tabId;
+    }
 });
 chrome.tabs.onMoved.addListener(loadTabs);
 chrome.tabGroups.onCreated.addListener(loadTabs);
