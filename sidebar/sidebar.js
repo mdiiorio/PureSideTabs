@@ -548,11 +548,18 @@ function renderGroupSection(group, tabsToShow, totalCount, collapsed) {
 
     const header = document.createElement('div');
     header.className = 'tab-group-header';
-    header.addEventListener('click', () => {
-        if (group.collapsed) pendingScrollGroupId = group.id;
-        chrome.tabGroups.update(group.id, { collapsed: !group.collapsed })
-            .then(loadTabs)
-            .catch(console.error);
+    header.addEventListener('click', (e) => {
+        const newCollapsed = !group.collapsed;
+        if (e.metaKey) {
+            Promise.all(allGroups.map(g => chrome.tabGroups.update(g.id, { collapsed: newCollapsed })))
+                .then(loadTabs)
+                .catch(console.error);
+        } else {
+            if (!newCollapsed) pendingScrollGroupId = group.id;
+            chrome.tabGroups.update(group.id, { collapsed: newCollapsed })
+                .then(loadTabs)
+                .catch(console.error);
+        }
     });
 
     header.addEventListener('contextmenu', (e) => {
