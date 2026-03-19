@@ -20,6 +20,7 @@ A Chrome extension that lists your open tabs in a vertical sidebar.
 - Visual bracket indicator for tabs open in split view
 - Pinned tabs shown at the top, separated from regular tabs
 - Toolbar popup showing pinned tabs and recently used tabs, with keyboard navigation (↑/↓ or j/k, Enter to switch)
+- Press **/** in the popup to search all open tabs and recently closed tabs by title or URL, sorted by recency
 - Keyboard shortcut **Ctrl+B** (Cmd+B on Mac) to show/hide the sidebar
 - Keyboard shortcut **Ctrl+E** (Cmd+E on Mac) to activate the extension
 - Drag and drop to reorder tabs and tab groups; drop a tab onto a group header to add it to the group
@@ -34,3 +35,4 @@ Access settings via right-click on the extension icon → **Options**, or throug
 |---------|---------|-------------|
 | Recent tabs to show in popup | 10 | How many recently used tabs appear in the toolbar popup |
 | Open new tabs inside current group | Off | When enabled, pressing Ctrl+T while on a grouped tab opens the new tab at the end of that group instead of at the end of the window |
+| Always keep tab groups at top | Off | When enabled, tab groups always appear directly after pinned tabs. New tabs opened before any group are automatically moved after all groups, and dragging a tab above the groups section is disallowed |
