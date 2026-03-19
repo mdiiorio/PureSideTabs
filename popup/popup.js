@@ -14,11 +14,75 @@ function setSelected(index) {
     }
 }
 
+// --- Search ---
+
+let searchMode = false;
+let searchInput = null;
+let allWindowTabs = [];
+
+async function enterSearchMode() {
+    searchMode = true;
+    const currentWindow = await chrome.windows.getCurrent();
+    allWindowTabs = await chrome.tabs.query({ windowId: currentWindow.id });
+
+    container.innerHTML = '';
+    rows = [];
+    selectedIndex = -1;
+
+    searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'search-input';
+    searchInput.placeholder = 'Search tabs…';
+    container.appendChild(searchInput);
+    searchInput.addEventListener('input', renderSearchResults);
+    searchInput.focus();
+}
+
+function renderSearchResults() {
+    [...container.children].forEach(el => { if (el !== searchInput) el.remove(); });
+    rows = [];
+    selectedIndex = -1;
+
+    const q = searchInput.value.toLowerCase();
+    if (!q) return;
+
+    const matches = allWindowTabs.filter(t =>
+        t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q)
+    );
+
+    for (const tab of matches) {
+        const row = renderRow(tab);
+        rows.push(row);
+        container.appendChild(row);
+    }
+
+    if (rows.length > 0) setSelected(0);
+}
+
+function exitSearchMode() {
+    searchMode = false;
+    searchInput = null;
+    allWindowTabs = [];
+    container.innerHTML = '';
+    rows = [];
+    selectedIndex = -1;
+    render();
+}
+
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'j') {
+    if (!searchMode && e.key === '/') {
+        e.preventDefault();
+        enterSearchMode();
+        return;
+    }
+    if (searchMode && e.key === 'Escape') {
+        exitSearchMode();
+        return;
+    }
+    if (e.key === 'ArrowDown' || (!searchMode && e.key === 'j')) {
         e.preventDefault();
         setSelected(selectedIndex + 1);
-    } else if (e.key === 'ArrowUp' || e.key === 'k') {
+    } else if (e.key === 'ArrowUp' || (!searchMode && e.key === 'k')) {
         e.preventDefault();
         setSelected(selectedIndex - 1);
     } else if (e.key === 'Enter') {
