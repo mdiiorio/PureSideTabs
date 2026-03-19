@@ -14,6 +14,19 @@ let splitPositions = new Map(); // tabId -> 'first' | 'middle' | 'last'
 
 const HOVER_EXPAND_DELAY_MS = 1000;
 
+// --- Settings ---
+const settings = { tabGroupsAlwaysAtTop: false };
+
+chrome.storage.sync.get('tabGroupsAlwaysAtTop').then(({ tabGroupsAlwaysAtTop = false }) => {
+    settings.tabGroupsAlwaysAtTop = tabGroupsAlwaysAtTop;
+});
+
+chrome.storage.onChanged.addListener((changes) => {
+    if ('tabGroupsAlwaysAtTop' in changes) {
+        settings.tabGroupsAlwaysAtTop = changes.tabGroupsAlwaysAtTop.newValue;
+    }
+});
+
 // --- Scroll state ---
 let pendingScrollGroupId = null; // group to scroll into view after expand
 let pendingScrollTabId = null;   // active tab to scroll into view after next render (row not yet in DOM)
@@ -514,6 +527,15 @@ function renderTabRow(tab) {
             return;
         }
         const pos = getDropPosition(e, row);
+        if (settings.tabGroupsAlwaysAtTop && dragState?.type === 'tab') {
+            const firstGroupedTab = allTabs.find(t => t.groupId !== -1);
+            if (firstGroupedTab) {
+                const beforeFirstGroup = tab.groupId === -1
+                    ? tab.index < firstGroupedTab.index
+                    : tab.id === firstGroupedTab.id && pos === 'before';
+                if (beforeFirstGroup) { dropIndicator.remove(); return; }
+            }
+        }
         const groupSection = row.closest('.tab-group');
         const groupId = groupSection ? parseInt(groupSection.dataset.groupId) : -1;
         lastDragTarget = { targetTabId: tab.id, position: pos, groupId };

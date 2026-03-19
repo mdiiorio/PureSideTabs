@@ -141,14 +141,30 @@ chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
 // --- New tab group placement ---
 
 chrome.tabs.onCreated.addListener(async (tab) => {
-    // Only intercept new tab pages, not link-opened tabs
-    if (tab.pendingUrl !== 'chrome://newtab/') return;
-
     // Capture synchronously before any await — onActivated for the new tab
     // may fire before async operations complete, overwriting activeTabByWindow
     const prevTabId = activeTabByWindow.get(tab.windowId);
 
-    const { newTabInGroup = false } = await chrome.storage.sync.get('newTabInGroup');
+    const { newTabInGroup = false, tabGroupsAlwaysAtTop = false } =
+        await chrome.storage.sync.get(['newTabInGroup', 'tabGroupsAlwaysAtTop']);
+
+    if (tabGroupsAlwaysAtTop) {
+        const allTabs = await chrome.tabs.query({ windowId: tab.windowId });
+        const groupedTabs = allTabs.filter(t => t.groupId !== -1).sort((a, b) => a.index - b.index);
+        if (groupedTabs.length > 0) {
+            const firstGroupIndex = groupedTabs[0].index;
+            const lastGroupIndex = groupedTabs[groupedTabs.length - 1].index;
+            if (tab.index < firstGroupIndex || (tab.index <= lastGroupIndex && tab.groupId === -1)) {
+                const targetIndex = lastGroupIndex + (tab.index > lastGroupIndex ? 1 : 0);
+                await chrome.tabs.move(tab.id, { index: targetIndex });
+                return;
+            }
+        }
+    }
+
+    // Only intercept new tab pages for newTabInGroup feature
+    if (tab.pendingUrl !== 'chrome://newtab/') return;
+
     if (!newTabInGroup) return;
 
     if (!prevTabId || prevTabId === tab.id) return;

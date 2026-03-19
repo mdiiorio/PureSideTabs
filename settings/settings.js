@@ -2,12 +2,14 @@ const DEFAULT_MRU_LIMIT = 10;
 
 const mruInput = document.getElementById('mru-limit');
 const newTabInGroupInput = document.getElementById('new-tab-in-group');
+const tabGroupsAlwaysAtTopInput = document.getElementById('tab-groups-always-at-top');
 
 async function load() {
-    const { mruLimit = DEFAULT_MRU_LIMIT, newTabInGroup = false } =
-        await chrome.storage.sync.get(['mruLimit', 'newTabInGroup']);
+    const { mruLimit = DEFAULT_MRU_LIMIT, newTabInGroup = false, tabGroupsAlwaysAtTop = false } =
+        await chrome.storage.sync.get(['mruLimit', 'newTabInGroup', 'tabGroupsAlwaysAtTop']);
     mruInput.value = mruLimit;
     newTabInGroupInput.checked = newTabInGroup;
+    tabGroupsAlwaysAtTopInput.checked = tabGroupsAlwaysAtTop;
 }
 
 mruInput.addEventListener('change', async () => {
@@ -18,6 +20,10 @@ mruInput.addEventListener('change', async () => {
 
 newTabInGroupInput.addEventListener('change', async () => {
     await chrome.storage.sync.set({ newTabInGroup: newTabInGroupInput.checked });
+});
+
+tabGroupsAlwaysAtTopInput.addEventListener('change', async () => {
+    await chrome.storage.sync.set({ tabGroupsAlwaysAtTop: tabGroupsAlwaysAtTopInput.checked });
 });
 
 load();

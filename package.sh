@@ -16,3 +16,8 @@ zip -r "$OUT" \
     --exclude "*.DS_Store"
 
 echo "Created $OUT"
+
+if [[ "$*" == *"--deploy"* ]]; then
+    unzip -o "$OUT" -d out
+    echo "Deployed to out/"
+fi

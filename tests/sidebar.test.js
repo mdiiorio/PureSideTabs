@@ -208,6 +208,47 @@ test('add to existing group from submenu', async ({ context, extensionId }) => {
     await expect(group.locator('.tab-title', { hasText: 'Playwright' })).toBeVisible();
 });
 
+test('tabGroupsAlwaysAtTop: new tab created before a group is moved after it', async ({ context, extensionId }) => {
+    const page1 = await context.newPage();
+    await page1.goto('https://playwright.dev');
+
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    // Group the playwright tab
+    await sidebar.evaluate(async () => {
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const target = tabs.find(t => t.url.includes('playwright.dev'));
+        await chrome.tabs.group({ tabIds: [target.id] });
+    });
+
+    await expect(sidebar.locator('.tab-group')).toBeVisible();
+
+    // Enable the setting
+    await sidebar.evaluate(async () => {
+        await chrome.storage.sync.set({ tabGroupsAlwaysAtTop: true });
+    });
+
+    // Force-create a new tab at index 0, before the group
+    await sidebar.evaluate(async () => {
+        await chrome.tabs.create({ index: 0, url: 'https://example.com' });
+    });
+
+    await expect(sidebar.locator('.tab-title', { hasText: 'Example Domain' })).toBeVisible();
+
+    // Wait for the background to move the tab after the group — sidebar should
+    // reflect the group before the ungrouped example.com row
+    await sidebar.waitForFunction(() => {
+        const children = [...document.getElementById('tab-tree').children];
+        const groupIdx = children.findIndex(el => el.classList.contains('tab-group'));
+        const tabIdx = children.findIndex(el =>
+            el.classList.contains('tab-row') &&
+            el.querySelector('.tab-title')?.textContent.includes('Example Domain')
+        );
+        return groupIdx !== -1 && tabIdx !== -1 && groupIdx < tabIdx;
+    });
+});
+
 test('sidebar loads and shows the current tab', async ({ context, extensionId }) => {
     // Open a real tab so there's something to display
     const page = await context.newPage();
