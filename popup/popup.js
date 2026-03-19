@@ -27,7 +27,9 @@ async function enterSearchMode() {
     const sessions = await chrome.sessions.getRecentlyClosed();
 
     allWindowTabs = await chrome.tabs.query({ windowId: currentWindow.id });
-    recentlyClosedTabs = sessions.map(s => s.tab).filter(Boolean);
+    recentlyClosedTabs = sessions
+        .filter(s => s.tab)
+        .map(s => ({ ...s.tab, lastModifiedMs: s.lastModified * 1000 }));
 
     container.innerHTML = '';
     rows = [];
@@ -75,21 +77,18 @@ function renderSearchResults() {
     const q = searchInput.value.toLowerCase();
     if (!q) return;
 
-    const openMatches = allWindowTabs.filter(t =>
-        t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q)
-    );
-    const closedMatches = recentlyClosedTabs.filter(t =>
-        t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q)
-    );
+    const openMatches = allWindowTabs
+        .filter(t => t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q))
+        .map(t => ({ tab: t, ts: t.lastAccessed ?? 0, closed: false }));
 
-    for (const tab of openMatches) {
-        const row = renderRow(tab);
-        rows.push(row);
-        container.appendChild(row);
-    }
+    const closedMatches = recentlyClosedTabs
+        .filter(t => t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q))
+        .map(t => ({ tab: t, ts: t.lastModifiedMs, closed: true }));
 
-    for (const tab of closedMatches) {
-        const row = renderClosedRow(tab);
+    const matches = [...openMatches, ...closedMatches].sort((a, b) => b.ts - a.ts);
+
+    for (const { tab, closed } of matches) {
+        const row = closed ? renderClosedRow(tab) : renderRow(tab);
         rows.push(row);
         container.appendChild(row);
     }
