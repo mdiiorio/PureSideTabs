@@ -7,7 +7,8 @@
     "tabs",
     "tabGroups",
     "sidePanel",
-    "storage"
+    "storage",
+    "sessions"
   ],
   "commands": {
     "toggle-sidebar": {

@@ -19,11 +19,15 @@ function setSelected(index) {
 let searchMode = false;
 let searchInput = null;
 let allWindowTabs = [];
+let recentlyClosedTabs = [];
 
 async function enterSearchMode() {
     searchMode = true;
     const currentWindow = await chrome.windows.getCurrent();
+    const sessions = await chrome.sessions.getRecentlyClosed();
+
     allWindowTabs = await chrome.tabs.query({ windowId: currentWindow.id });
+    recentlyClosedTabs = sessions.map(s => s.tab).filter(Boolean);
 
     container.innerHTML = '';
     rows = [];
@@ -38,6 +42,31 @@ async function enterSearchMode() {
     searchInput.focus();
 }
 
+function renderClosedRow(tab) {
+    const row = document.createElement('div');
+    row.className = 'tab-row closed-tab';
+
+    row.appendChild(renderFavicon(tab));
+
+    const title = document.createElement('span');
+    title.className = 'tab-title';
+    title.textContent = tab.title || tab.url || '(New Tab)';
+    title.title = tab.title || tab.url || '';
+    row.appendChild(title);
+
+    const marker = document.createElement('span');
+    marker.className = 'closed-tab-marker';
+    marker.textContent = '↩';
+    row.appendChild(marker);
+
+    row.addEventListener('click', () => {
+        chrome.sessions.restore(tab.sessionId);
+        window.close();
+    });
+
+    return row;
+}
+
 function renderSearchResults() {
     [...container.children].forEach(el => { if (el !== searchInput) el.remove(); });
     rows = [];
@@ -46,12 +75,21 @@ function renderSearchResults() {
     const q = searchInput.value.toLowerCase();
     if (!q) return;
 
-    const matches = allWindowTabs.filter(t =>
+    const openMatches = allWindowTabs.filter(t =>
+        t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q)
+    );
+    const closedMatches = recentlyClosedTabs.filter(t =>
         t.title?.toLowerCase().includes(q) || t.url?.toLowerCase().includes(q)
     );
 
-    for (const tab of matches) {
+    for (const tab of openMatches) {
         const row = renderRow(tab);
+        rows.push(row);
+        container.appendChild(row);
+    }
+
+    for (const tab of closedMatches) {
+        const row = renderClosedRow(tab);
         rows.push(row);
         container.appendChild(row);
     }
@@ -63,6 +101,7 @@ function exitSearchMode() {
     searchMode = false;
     searchInput = null;
     allWindowTabs = [];
+    recentlyClosedTabs = [];
     container.innerHTML = '';
     rows = [];
     selectedIndex = -1;
