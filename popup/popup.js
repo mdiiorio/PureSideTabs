@@ -149,6 +149,14 @@ function renderRow(tab) {
     title.title = tab.title || tab.url || '';
     row.appendChild(title);
 
+    if (tab.audible) {
+        const audio = document.createElement('span');
+        audio.className = 'tab-audio';
+        audio.title = 'Playing audio';
+        audio.textContent = '🔊';
+        row.appendChild(audio);
+    }
+
     row.addEventListener('click', () => {
         chrome.tabs.update(tab.id, { active: true });
         window.close();

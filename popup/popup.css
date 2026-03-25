@@ -58,6 +58,12 @@ body {
   color: var(--text);
 }
 
+.tab-audio {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
 .empty-state {
   padding: 12px;
   color: var(--text-muted);
