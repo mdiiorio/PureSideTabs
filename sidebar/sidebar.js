@@ -845,6 +845,11 @@ chrome.tabs.onCreated.addListener(loadTabs);
 chrome.tabs.onRemoved.addListener(loadTabs);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if ('groupId' in changeInfo || 'splitViewId' in changeInfo || 'pinned' in changeInfo) {
+        // When the active tab is added to a group its position in the sidebar changes.
+        // Set pendingScrollTabId so the next render scrolls to its final position.
+        if ('groupId' in changeInfo && allTabs.find(t => t.id === tabId)?.active) {
+            pendingScrollTabId = tabId;
+        }
         loadTabs();
     } else if ('title' in changeInfo || 'favIconUrl' in changeInfo || 'audible' in changeInfo) {
         patchTab(tabId, changeInfo);

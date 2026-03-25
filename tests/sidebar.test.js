@@ -264,3 +264,65 @@ test('sidebar loads and shows the current tab', async ({ context, extensionId })
     // The example.com tab title should appear somewhere
     await expect(sidebar.locator('.tab-title', { hasText: 'Example Domain' })).toBeVisible();
 });
+
+test('new tab in group scrolls into view when group is above the new tab\'s initial position', async ({ context, extensionId }) => {
+    // The bug: when a new tab is created at the bottom of the tab list (initial position X)
+    // and background.js moves it into a group near the top (final position Y << X),
+    // the sidebar must scroll to Y — not stay at the scroll position that showed X.
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    // Create 5 tabs and group them (setting is still off, so they won't auto-group)
+    for (let i = 0; i < 5; i++) {
+        const p = await context.newPage();
+        await p.goto(`https://example.com?g=${i}`, { waitUntil: 'commit' });
+    }
+    await sidebar.evaluate(async () => {
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const tabIds = tabs.filter(t => t.url.includes('example.com')).map(t => t.id);
+        const groupId = await chrome.tabs.group({ tabIds });
+        await chrome.tabGroups.update(groupId, { title: 'Target Group', color: 'blue' });
+    });
+
+    // Create 15 filler tabs AFTER the group — these push the new tab's initial
+    // creation position far below the group, maximising the X-vs-Y distance
+    await sidebar.evaluate(async () => {
+        for (let i = 0; i < 15; i++) await chrome.tabs.create({ url: 'about:blank' });
+    });
+
+    await expect(sidebar.locator('.group-name', { hasText: 'Target Group' })).toBeVisible();
+
+    // Enable newTabInGroup and activate a group tab so background.js targets that group
+    await sidebar.evaluate(async () => {
+        await chrome.storage.sync.set({ newTabInGroup: true });
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const groupTab = tabs.find(t => t.groupId !== -1);
+        await chrome.tabs.update(groupTab.id, { active: true });
+    });
+
+    // Small viewport so the sidebar is scrollable
+    await sidebar.setViewportSize({ width: 400, height: 200 });
+
+    // Create new tab — it appears at the end of the list first (initial position X),
+    // then background.js moves and groups it near the top (final position Y)
+    await sidebar.evaluate(async () => {
+        await chrome.tabs.create({});
+    });
+
+    // Wait for the new tab to land inside the group, then let renders settle
+    await sidebar.waitForFunction(() => {
+        return document.querySelector('.tab-group .tab-row.active') !== null;
+    }, { timeout: 10000 });
+    await sidebar.waitForTimeout(500);
+
+    // The active tab row (now in the group near the top) must be visible
+    const isInView = await sidebar.evaluate(() => {
+        const tree = document.getElementById('tab-tree');
+        const activeRow = document.querySelector('.tab-row.active');
+        if (!activeRow) return false;
+        const treeRect = tree.getBoundingClientRect();
+        const rowRect = activeRow.getBoundingClientRect();
+        return rowRect.top >= treeRect.top - 1 && rowRect.bottom <= treeRect.bottom + 1;
+    });
+    expect(isInView).toBe(true);
+});
