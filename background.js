@@ -140,6 +140,37 @@ chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
 
 // --- New tab group placement ---
 
+chrome.tabGroups.onCreated.addListener(async (group) => {
+    const { tabGroupsAlwaysAtTop = false } = await chrome.storage.sync.get(['tabGroupsAlwaysAtTop']);
+    if (!tabGroupsAlwaysAtTop) return;
+
+    const allTabs = await chrome.tabs.query({ windowId: group.windowId });
+
+    const newGroupTabs = allTabs.filter(t => t.groupId === group.id).sort((a, b) => a.index - b.index);
+    if (newGroupTabs.length === 0) return;
+
+    const otherGroupedTabs = allTabs.filter(t => t.groupId !== -1 && t.groupId !== group.id)
+        .sort((a, b) => a.index - b.index);
+
+    let targetIndex;
+    if (otherGroupedTabs.length > 0) {
+        targetIndex = otherGroupedTabs[otherGroupedTabs.length - 1].index + 1;
+    } else {
+        const pinnedTabs = allTabs.filter(t => t.pinned);
+        targetIndex = pinnedTabs.length;
+    }
+
+    if (newGroupTabs[0].index === targetIndex) return;
+
+    // tabGroups.move uses the index in the post-removal array; adjust when the
+    // new group's tabs sit before the target, since removing them shifts it down.
+    if (newGroupTabs[0].index < targetIndex) {
+        targetIndex -= newGroupTabs.length;
+    }
+
+    await chrome.tabGroups.move(group.id, { index: targetIndex });
+});
+
 chrome.tabs.onCreated.addListener(async (tab) => {
     // Capture synchronously before any await — onActivated for the new tab
     // may fire before async operations complete, overwriting activeTabByWindow

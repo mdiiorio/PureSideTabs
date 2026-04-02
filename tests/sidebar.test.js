@@ -249,6 +249,59 @@ test('tabGroupsAlwaysAtTop: new tab created before a group is moved after it', a
     });
 });
 
+test('tabGroupsAlwaysAtTop: new tab group is moved after existing groups', async ({ context, extensionId }) => {
+    const sidebar = await context.newPage();
+    await sidebar.goto(`chrome-extension://${extensionId}/sidebar/sidebar.html`);
+
+    // Enable the setting
+    await sidebar.evaluate(async () => {
+        await chrome.storage.sync.set({ tabGroupsAlwaysAtTop: true });
+    });
+
+    // Create and group some tabs to form an existing group
+    const page1 = await context.newPage();
+    await page1.goto('https://playwright.dev');
+    await sidebar.evaluate(async () => {
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const target = tabs.find(t => t.url.includes('playwright.dev'));
+        const groupId = await chrome.tabs.group({ tabIds: [target.id] });
+        await chrome.tabGroups.update(groupId, { title: 'Existing Group', color: 'blue' });
+    });
+
+    await expect(sidebar.locator('.group-name', { hasText: 'Existing Group' })).toBeVisible();
+
+    // Open a tab that will end up before the existing group, then group it
+    await sidebar.evaluate(async () => {
+        // Create a tab at index 0 (before the existing group)
+        await chrome.tabs.create({ index: 0, url: 'https://example.com' });
+    });
+    await expect(sidebar.locator('.tab-title', { hasText: 'Example Domain' })).toBeVisible();
+
+    // Group that tab — this creates a new tab group which should be moved after the existing group
+    await sidebar.evaluate(async () => {
+        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const target = tabs.find(t => t.url.includes('example.com'));
+        const groupId = await chrome.tabs.group({ tabIds: [target.id] });
+        await chrome.tabGroups.update(groupId, { title: 'New Group', color: 'red' });
+    });
+
+    await expect(sidebar.locator('.group-name', { hasText: 'New Group' })).toBeVisible();
+
+    // Wait for the background to move the new group after the existing group
+    await sidebar.waitForFunction(() => {
+        const children = [...document.getElementById('tab-tree').children];
+        const existingGroupIdx = children.findIndex(el =>
+            el.classList.contains('tab-group') &&
+            el.querySelector('.group-name')?.textContent.includes('Existing Group')
+        );
+        const newGroupIdx = children.findIndex(el =>
+            el.classList.contains('tab-group') &&
+            el.querySelector('.group-name')?.textContent.includes('New Group')
+        );
+        return existingGroupIdx !== -1 && newGroupIdx !== -1 && existingGroupIdx < newGroupIdx;
+    });
+});
+
 test('sidebar loads and shows the current tab', async ({ context, extensionId }) => {
     // Open a real tab so there's something to display
     const page = await context.newPage();
