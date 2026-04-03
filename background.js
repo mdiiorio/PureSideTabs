@@ -187,7 +187,11 @@ chrome.tabs.onCreated.addListener(async (tab) => {
             const lastGroupIndex = groupedTabs[groupedTabs.length - 1].index;
             if (tab.index < firstGroupIndex || (tab.index <= lastGroupIndex && tab.groupId === -1)) {
                 const targetIndex = lastGroupIndex + (tab.index > lastGroupIndex ? 1 : 0);
-                await chrome.tabs.move(tab.id, { index: targetIndex });
+                try {
+                    await chrome.tabs.move(tab.id, { index: targetIndex });
+                } catch {
+                    return;
+                }
                 return;
             }
         }
@@ -214,8 +218,12 @@ chrome.tabs.onCreated.addListener(async (tab) => {
     if (!lastGroupTab) return;
 
     const index = lastGroupTab.index + (tab.index > lastGroupTab.index ? 1 : 0);
-    await chrome.tabs.move(tab.id, { index });
-    await chrome.tabs.group({ tabIds: [tab.id], groupId: prevTab.groupId });
+    try {
+        await chrome.tabs.move(tab.id, { index });
+        await chrome.tabs.group({ tabIds: [tab.id], groupId: prevTab.groupId });
+    } catch {
+        return;
+    }
 });
 
 chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
