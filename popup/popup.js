@@ -27,9 +27,11 @@ async function enterSearchMode() {
     const sessions = await chrome.sessions.getRecentlyClosed();
 
     allWindowTabs = await chrome.tabs.query({ windowId: currentWindow.id });
+    const seenUrls = new Set();
     recentlyClosedTabs = sessions
         .filter(s => s.tab)
-        .map(s => ({ ...s.tab, lastModifiedMs: s.lastModified * 1000 }));
+        .map(s => ({ ...s.tab, lastModifiedMs: s.lastModified * 1000 }))
+        .filter(t => t.url && !seenUrls.has(t.url) && seenUrls.add(t.url));
 
     container.innerHTML = '';
     rows = [];
