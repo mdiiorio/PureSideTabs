@@ -138,9 +138,27 @@ chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
     pushMru(tabId, windowId);
 });
 
+// --- Session restore detection ---
+
+// True once the startup restore burst has settled. Defaults to true so that
+// mid-session service worker restarts (where no onStartup fires) are unaffected.
+let restoreSettled = true;
+let restoreSettleTimer = null;
+
+function bumpRestoreSettleTimer() {
+    clearTimeout(restoreSettleTimer);
+    restoreSettleTimer = setTimeout(() => { restoreSettled = true; }, 500);
+}
+
+chrome.runtime.onStartup.addListener(() => {
+    restoreSettled = false;
+    bumpRestoreSettleTimer();
+});
+
 // --- New tab group placement ---
 
 chrome.tabGroups.onCreated.addListener(async (group) => {
+    if (!restoreSettled) { bumpRestoreSettleTimer(); return; }
     const { tabGroupsAlwaysAtTop = false } = await chrome.storage.sync.get(['tabGroupsAlwaysAtTop']);
     if (!tabGroupsAlwaysAtTop) return;
 
@@ -172,6 +190,7 @@ chrome.tabGroups.onCreated.addListener(async (group) => {
 });
 
 chrome.tabs.onCreated.addListener(async (tab) => {
+    if (!restoreSettled) { bumpRestoreSettleTimer(); return; }
     // Capture synchronously before any await — onActivated for the new tab
     // may fire before async operations complete, overwriting activeTabByWindow
     const prevTabId = activeTabByWindow.get(tab.windowId);
