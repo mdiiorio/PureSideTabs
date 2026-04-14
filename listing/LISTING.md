@@ -22,3 +22,9 @@
 • You can use the popup menu to easily switch back and forth between two tabs (Ctrl-Tab replacement): show the popup menu (Ctrl/Command-E by default), then press Enter. This will switch back and forth between the two most recently-viewed tabs.
 • Holding Ctrl/Command while collapsing or expanding tab groups will apply the command to all tab groups in the window.
 • Enable "Always keep tab groups at top" in settings to pin tab groups directly after pinned tabs, with automatic enforcement on new tabs and drag-and-drop.
+
+📋 Changelog
+
+• 1.2.0 - "tab groups always at top" setting, added search to MRU popup, audio icon sidebar, bug where tabs were removed from tab groups
+• 1.1.0 - cmd+click to open/close all tab groups, scroll to newly opened tabs in list
+• 1.0.0 - initial release

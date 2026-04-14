@@ -1,2 +1,1 @@
 - Dragging a pinned tab out of the pinned section doesn't unpin — should it?
-- No support yet for grouping tabs from the sidebar context menu
