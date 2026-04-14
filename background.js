@@ -142,6 +142,9 @@ chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
 
 // True once the startup restore burst has settled. Defaults to true so that
 // mid-session service worker restarts (where no onStartup fires) are unaffected.
+// During restore, tabs.onCreated and tabGroups.onCreated race — a tab may fire
+// with groupId -1 before its group has been created, making placement decisions
+// based on incomplete state. We skip both handlers until the burst settles.
 let restoreSettled = true;
 let restoreSettleTimer = null;
 
